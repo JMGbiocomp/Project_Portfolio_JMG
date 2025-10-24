@@ -32,7 +32,7 @@ Output:
 A file named "motif_count.txt" listing the counts for each provided motif in the FASTA file.
 For every inputted motif, a seperate FASTA file will be generated with the gene headers and corresponding gene sequences where the motif appears. These file can be found within the newly generated "motifs" directory.
 
-How to RUN:
+# How to RUN:
 
 Navigate to the directory containing the script.
 Run the following commands:
