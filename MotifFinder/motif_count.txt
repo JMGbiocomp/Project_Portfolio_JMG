@@ -1,0 +1,7 @@
+Number of Genes Found to Contain Each Identified Motif Associated with Radiation Resistance in R. bifella Colony
+TCTT 23
+CATCA 8
+CTATC 10
+AAAAA 14
+ATACC 8
+GAACA 1
