@@ -38,4 +38,4 @@ Navigate to the directory containing the script.
 Run the following commands:
 
 chmod a+rx week2script.sh
-bash week2script.sh
+bash week2script.sh <file/path/target_motifs.txt> <file/pathe/gene_list.fasta>
