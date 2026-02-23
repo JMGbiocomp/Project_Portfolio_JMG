@@ -1,0 +1,7 @@
+chicken
+dromedary
+fox
+goat
+gopher
+gorilla
+lamb
