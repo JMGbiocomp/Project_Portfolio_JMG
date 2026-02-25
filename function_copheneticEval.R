@@ -5,10 +5,11 @@
   # feature_labels = labels for samples for evaluation of clustering of treatment groups and phenotypic characteristics under exploratory analysis
   # dist_calculation = character vector of distance calucaltion methods for evaluation passed to hclusteringObject function to generate dendrograms
   # linkage_methods = character vector of linkage methods for evaluation passed to hclusteringObject function to generate dendrograms
+  # usage = single character vector to distinguish the usage for the function between data QC and exploratory analysis; choose from "Quality Control" or "Exploratory"  
 
 source("function_hclustering_object.R")
 
-copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculation = c("Euclidean", "Poisson", "Correlation"), linakge_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")) {
+copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculation = c("Euclidean", "Poisson", "Correlation"), linakge_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), usage = "Quality Control") {
   # errors and flags
   if (is.na(count_data)) {stop("must include a data set for the 'count_data' arguemnt")}
   if (is.na(feature_labels)) {stop("must provide a vector of labels for features (samples) as the 'feature_labels' argument")}
@@ -22,10 +23,10 @@ copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculatio
   rownames(output_df) = dist_calculation # distance calculation methods as rows
   colnames(output_df) = linkage_methods # linkage methods as columns
   
-  # flow control for combionatorial analysis of cophenetic distance of dendrograms
+  # flow control for combinatorial analysis of cophenetic distance of dendrograms
   for (d in dist_calculation) {
     for (l in linakge_methods) {
-      dend = hclustering_object(count_data = count_data, feature_labels = feature_labels, distance_type = d, linkage_method = l, dend_plot = FALSE)
+      dend = hclustering_object(count_data = count_data, feature_labels = feature_labels, distance_type = d, linkage_method = l, usage = usage, dend_plot = FALSE)
       output_df[d,l] = cophenetic(dend) # calculation cophenetic distance
     }
   }

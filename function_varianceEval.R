@@ -5,7 +5,7 @@
   # count_data = the count matrix for analysis with samples as columns and species as rows; functionality extends beyond count data and works with other samples from different distribution types
   # plot_title = character vector used as the title of the visualizations
   # table_return = boulean value to determine if fucntion retunrs the results as a table
-  # hist_return = boulena value to determine if a histogram of the variances is returned 
+  # hist_return = boulean value to determine if a histogram of the variances is returned 
   # scatter_return = boulean value to determine if a scatter plot of the variances by species index is returned 
 
 varianceEval = function (count_data, plot_title = NULL, table_return = FALSE, hist_return = TRUE, scatter_return = FALSE) {
