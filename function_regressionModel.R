@@ -9,7 +9,7 @@
   # b_type = determines the type of binary variable; must choose either 'categories' or 'success' 
   # binary_cutoff =. single numeric value vector to use as the cut off value when modifying the feature variable to become binary
 library(stats)
-regressionModel = function (model_data = NA, feature_labels = NA, model_formula = y ~ ., glm_family = NA, binarize = FALSE, b_type = c("categories", "success"), binary_cutoff = NA,  ) {
+regressionModel = function (model_data = NA, feature_labels = NA, model_formula = y ~ ., glm_family = NA, binarize = FALSE, b_type = c("categories", "success"), binary_cutoff = NA) {
   # errors and flags
   if (is.na(model_data)) {stop("requires a data matrix or equivalaent to model")}
   if (is.na(feature_labels)) {stop("requires a data feature as a respoinse variable to model against")}
