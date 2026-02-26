@@ -4,9 +4,10 @@
 # arguments:
   # count_data = count data for PCA; functionality extends to non-count data for other variable/distribution types
   # feature_labels = character vector of the categories, treatments, or phenotype corresponding to each sample under potential investigation
-  # plot2D = boulean vlaue to determine if 2D plots will be generated; default = TRUE
-  # plot3D = boulean value to determine if a 3D plot will be generated; default = FALSE
+  # plot2D = logical value to determine if 2D plots will be generated; default = TRUE
+  # plot3D = logical value to determine if a 3D plot will be generated; default = FALSE
   # usage = single element character vector to frame the PCA by either sample scores or species loading; default is set to "sample" but can also be set to "species"
+  # return = logical value to determine if the prcomp object (PCA) is returned
 
 library(rgl); library(BiocGenerics)
 plotPCA = function (count_data = NA, feature_labels = NA, plot2D = TRUE, plot3D = FALSE, usage = "sample", return = FALSE) {

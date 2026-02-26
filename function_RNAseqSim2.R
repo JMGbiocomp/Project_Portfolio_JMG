@@ -20,9 +20,9 @@
 # p.factor = the number species with samples with poor counts (between 0 and 1) 
 # p.range = vector of 3 elements for determining sample counts for species designated as having poor counts overall; default is set to c((1,100,100)) where the first two elemetns define the range of count values and the third element defines the number of zero placed within the pool of values for sampling
 # seed = integer value for a seed number to make the data set reproducible 
-# norm.sample = Boolean value (TRUE or FALSE) for determining if total counts by samples will be (nearly) normalized; default is set to TRUE
+# norm.sample = logical value (TRUE or FALSE) for determining if total counts by samples will be (nearly) normalized; default is set to TRUE
 # norm.range = vector of 3 elements for the range of values to skew the count values per sample; default set to c(0.7, 1.3, 0.001) for sequence generation
-# data.replacement = Boolean value (TRUE or FALSE) for determining if counts will undergo replacement relative to a species' mean; default is set to FALSE
+# data.replacement = logical value (TRUE or FALSE) for determining if counts will undergo replacement relative to a species' mean; default is set to FALSE
 # replacement.range = vector of 3 elements for the range of percentages of the total species that will undergo replacement; default set to c(0.01, 0.2, 0.001) for sequence generation
 # replacement.factor = vector of 3 elements for the range of factors to multiple to species mean to determine the replacement value: default set to c(0.5, 1.5, 1) for sequence generation
 

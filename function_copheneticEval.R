@@ -3,7 +3,7 @@
 # arguments:
   # count_data = count data for hierarchical clustering; functionality extends to non-count data for other variable/distribution types
   # feature_labels = labels for samples for evaluation of clustering of treatment groups and phenotypic characteristics under exploratory analysis
-  # dist_calculation = character vector of distance calucaltion methods for evaluation passed to hclusteringObject function to generate dendrograms
+  # dist_calculation = character vector of distance calculation methods for evaluation passed to hclusteringObject function to generate dendrograms
   # linkage_methods = character vector of linkage methods for evaluation passed to hclusteringObject function to generate dendrograms
   # usage = single character vector to distinguish the usage for the function between data QC and exploratory analysis; choose from "Quality Control" or "Exploratory"  
 

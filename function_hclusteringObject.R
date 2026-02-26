@@ -6,6 +6,7 @@
   # feature_labels = labels for samples for evaluation of clustering of treatment groups and phentypic characteristics under exploratory analysis
   # distance_type = determines how "distance" is defined for calculations; options include "Poisson", "Correlation", or "Euclidean"; default is set to "Euclidean"
   # linkage_method = determines how the distance between clusters is calculated to merge them; options include "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid"; must indicate what linkage method to use (default = NA) 
+  # dend_plot = logical value to determine if a dendrogram plot is outputted before return of hclust object
   # usage = single character vector to distinguish the usage for the function between data QC and exploratory analysis; choose from "Quality Control" or "Exploratory"
 
 source("function_PackageDependency.R")
