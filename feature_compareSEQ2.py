@@ -84,6 +84,8 @@ def generateReport (reference_file, query_file, report_file):
                 if r.startswith('>'): # recognize sequence header
                     report.write('Reference Sequence:' + '\n')
                     report.write(r + '\n' + '\n')
+                    if args.verbose:
+                        print(r)
                 else: # assumes non-headers are sequences
                     reference_seq = r # extract reference sequence 
                     with open(query_file, 'r') as query: # open the query file for reading 
@@ -91,11 +93,15 @@ def generateReport (reference_file, query_file, report_file):
                         for q in query:
                             if q.startswith('>'): # recognize sequence header
                                 report.write(q + '\n')
+                                if args.verbose:
+                                    print(q)
                             else: # assumes non-headers are sequences
                                 query_seq = q
                                 analysis = seqAnalysis(reference_seq, query_seq) # analyze the query against the reference sequence
                                 report.wrtie('Substitution Idexes: ' + analysis[0] + '\n')
                                 report.write('Sequence Identity: ' + analysis[1] + '\n')
+                                if args.verbose:
+                                    print(analysis[1])
                         report.write('--- end of query analysis for current reference sequence ---' + '\n' + '\n')
 
 ## --- Program Script --- ##
