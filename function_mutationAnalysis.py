@@ -201,3 +201,8 @@ if args.fasta:
     generateReport(reference_file, query_file, window_size, report_output)
 else:
     generateReport(reference_file, query_file, window_size, report_output)
+
+# flow control to determine if user indicated that the intermediate files are to be removed
+if args.remove:
+    os.remove('reference.txt')
+    os.remove('query.txt')
