@@ -189,7 +189,7 @@ def generateReport (reference_file, query_file, report_file, window_size):
                             query_seq = q
                             mutAnalysis(reference_seq, query_seq, window_size, report_file)
                     report.write('# ---  All Query Sequences Evaluated --- #' + '\n\n')
-            report.write(## --- Analysis End --- ##)
+            report.write('## --- Analysis End --- ##')
 
 
 ## --- Program Script --- ##
@@ -198,6 +198,6 @@ def generateReport (reference_file, query_file, report_file, window_size):
 if args.fasta:
     fasta_processor(reference_file, 'reference.txt')
     fasta_processor(query_file, 'query.txt')
-
+    generateReport(reference_file, query_file, window_size, report_output)
 else:
-
+    generateReport(reference_file, query_file, window_size, report_output)
