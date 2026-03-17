@@ -198,7 +198,7 @@ def generateReport (reference_file, query_file, report_file, window_size):
 if args.fasta:
     fasta_processor(reference_file, 'reference.txt')
     fasta_processor(query_file, 'query.txt')
-    generateReport(reference_file, query_file, window_size, report_output)
+    generateReport('reference.txt', 'query.txt', window_size, report_output)
 else:
     generateReport(reference_file, query_file, window_size, report_output)
 
