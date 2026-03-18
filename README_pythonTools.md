@@ -6,11 +6,11 @@ Description:
 At the center of many bioinformatics and computational biology workflows are biolgical sequences (DNA, RNA, proteins, etc).  How these sequences compare to one another or to a reference sequence as well as what subsequences exist within a larger sequence are the backbone for many sequence and variant analysis pipelines.  Tools with various algorithms allow for the meriad of recognitzed variant types with biology and specific seqeucnes to be detected as well as presented in a meaninful and readable manner.  These tools are geared towards the handling, analyzing, visualizing and generating reports for biolgical sequeneces in this context.
 
 Tools List:
-- 'function_compareSequence.py'
-- 'function_compareSequence2.py'
+- 'function_compareSEQ.py'
+- 'function_compareSEQ2.py'
 - 'function_mutationAnalysis.py'
 
-### function_compareSequence.py
+### function_compareSEQ.py
 
 Description: 
 Basic biological seqeunce analyzer to identify sequence substitutions in query sequences against one reference sequence.  Recongizes sequence IDs by stadnard fasta header formatting.  No functionality to processing fasta files with sequences spread across multiple lines and does not recognize insertion or deletion variants between sequences.  Input files (reference and query) must be formated as sequence ID ('>sequence_ID') followed by the corresponding biological sequence on the subsequent line.  Output is a report with query sequence number with corresponding mismatch indexes and the sequence identity as well as the reference and query files recorded. 
@@ -33,10 +33,10 @@ Arguements:
 
 Example Execution:
 
-python function_compareSequence.py -v <file_path_reference_file> <file_path_query_file>
+python function_compareSEQ.py -v <file_path_reference_file> <file_path_query_file>
 
 
-### function_compareSequence2.py
+### function_compareSEQ2.py
 
 Description:
 Upgraded basic biological sequence analyzer to identify sequence subsitituions in query sequences agaisnt one or more reference sequences.  Accepts single and multi-line sequences in fasta formating and includes the generation of intermediate txt files produced from inputted fasta files.  No functionality for recognitzing insertions or deletions between query sequences and reference sequences.  Input files must include a sequence ID per seqeunce in standard fasta format followed by the corresponding sequence.  Final output is a report with the referecne and query seqeunce IDs per comparison, mismatch indexes, sequence identity per comparison, and the file paths for each input file.
@@ -64,7 +64,7 @@ Arguements:
 
 Example Execution:
 
-python function_compareSequence.py -fr <file_path_reference_file> <file_path_query_file> <file_path_report_file>
+python function_compareSEQ2.py -fr <file_path_reference_file> <file_path_query_file> <file_path_report_file>
 
 
 ### function_mutationAnalysis.py
