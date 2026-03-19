@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('path_to_reference_fasta')
 parser.add_argument('path_to_query_fasta')
 parser.add_argument('path_to_report_txt')
-parser.add_argument('-w', '--window', type = int, default = 7, help = 'defines the size of the window frame for analyzing the sequences to determine the mutation type: substitution, deletion or insertion; default is a value of 7, 3 indexes before and 3 indexes after the target index.')
+parser.add_argument('-w', '--window', type = int, default = 4, help = 'defines the size of the window frame for analyzing the sequences to determine the mutation type: substitution, deletion or insertion; default value is 4')
 parser.add_argument('-i', '-intermediate', type = str, default = '', help = '')
 
 parser.add_argument('-v', '--verbose', actiion = 'store_true', help = '')
@@ -92,10 +92,9 @@ def window_framer (reference_sequence, reference_index, query_sequence, query_in
     return reference_upstream, reference_downstream, query_upstream, query_downstream
 
 
-def mutationIdentifier (reference_sequence, reference_index, query_sequence, query_index):
+def mutationIdentifier (reference_sequence, reference_index, query_sequence, query_index, window_size):
     '''
     '''
-    window_size = 4
     mutation_found = False
     
     while mutation_found == False:
@@ -124,7 +123,7 @@ def mutationIdentifier (reference_sequence, reference_index, query_sequence, que
     return mutation, report_reference, report_query, reference_index, query_index
 
 
-def SEQanalyzer (reference_sequence, query_sequence, report_file):
+def SEQanalyzer (reference_sequence, query_sequence, report_file, window_size):
     '''
     '''
     if len(reference_sequence) == len(query_sequence):
@@ -146,7 +145,7 @@ def SEQanalyzer (reference_sequence, query_sequence, report_file):
             r_index = r_index + 1
             q_index = q_index + 1
 
-def generateReport (reference_file, query_file, report_file):
+def generateReport (reference_file, query_file, report_file, window_size):
     with open(report_file, 'a') as report:
         report.write('reference_sequence' + '\t' + 'query_sequence' + '\t' + 'mutation' + '\t' + 'ref_index' + '\t' + 'query_index' + '\n')
         with open(reference_file, 'r') as r_file:
@@ -161,7 +160,7 @@ def generateReport (reference_file, query_file, report_file):
                                 report.write(q + '\t')
                             else:
                                 query_seq = q
-                                SEQanalyzer(reference_seq, query_seq, report)
+                                SEQanalyzer(reference_seq, query_seq, report, window_size)
 
 
 ## --- Program Script --- ##
@@ -172,9 +171,11 @@ if args.fasta:
         output_q = intermediate_output + '_query.txt'
         fasta_processor(reference_file, output_r)
         fasta_processor(query_file, output_q)
-        generateReport(output_r, output_q, report_output)
+        generateReport(output_r, output_q, report_output, window_size)
 
     else:
         fasta_processor(reference_file, 'reference.txt')
         fasta_processor(query_file, 'query.txt')
-        generateReport('reference.txt', 'query.txt', report_output)
+        generateReport('reference.txt', 'query.txt', report_output, window_size)
+else:
+    generateReport(reference_file, query_file, report_output, window_size)
