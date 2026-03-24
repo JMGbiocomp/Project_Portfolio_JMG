@@ -98,8 +98,8 @@ def generateReport (reference_file, query_file, report_file):
                             else: # assumes non-headers are sequences
                                 query_seq = q
                                 analysis = seqAnalysis(reference_seq, query_seq) # analyze the query against the reference sequence
-                                report.wrtie('Substitution Idexes: ' + analysis[0] + '\n')
-                                report.write('Sequence Identity: ' + analysis[1] + '\n')
+                                report.wrtie(f'Substitution Idexes: {analysis[0]}' + '\n')
+                                report.write(f'Sequence Identity: {analysis[1]}' + '\n')
                                 if args.verbose:
                                     print(analysis[1])
                         report.write('--- end of query analysis for current reference sequence ---' + '\n' + '\n')

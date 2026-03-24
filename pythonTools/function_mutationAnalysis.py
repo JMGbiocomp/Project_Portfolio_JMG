@@ -123,7 +123,7 @@ def mutAnalysis (reference_sequence, query_sequence, window_size, report_file):
                     report_reference = reference_index
                     report_query = query_index
                     with open(report_file,'a') as report:
-                        report.write(mutation + '\t' + report_reference + '\t' + report_query + '\n')
+                        report.write(f"{mutation}\t{report_reference}\t{report_query}\n")
                     reference_index = reference_index + 1
                     query_index = query_index + 1
                     window_check = True
@@ -132,7 +132,7 @@ def mutAnalysis (reference_sequence, query_sequence, window_size, report_file):
                     report_reference = reference_index
                     report_query = query_index
                     with open(report_file,'a') as report:
-                        report.write(mutation + '\t' + report_reference + '\t' + report_query + '\n')
+                        report.write(f"{mutation}\t{report_reference}\t{report_query}\n")
                     reference_index = reference_index + 1
                     window_check = True
                 elif query_sequence[window_framer[2]:query_index] == reference_sequence[window_indexes[0]:reference_index] & query_sequence[query_index+1:window_indexes[3]+1] == reference_sequence[reference_index:window_indexes[1]]:
@@ -140,7 +140,7 @@ def mutAnalysis (reference_sequence, query_sequence, window_size, report_file):
                     report_reference = reference_index
                     report_query = query_index
                     with open(report_file,'a') as report:
-                        report.write(mutation + '\t' + report_reference + '\t' + report_query + '\n')
+                        report.write(f"{mutation}\t{report_reference}\t{report_query}\n")
                     query_index = query_index + 1
                     window_check = True
                 else:

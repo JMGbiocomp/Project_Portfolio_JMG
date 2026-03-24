@@ -43,14 +43,14 @@ with open('compareSEQ_output.txt', 'a') as output: # create and open output file
     with open(seq_file, 'r') as file: # read input file with sequences, one per line
         seq_ct = 1 # input sequence sount
         for line in file:
-            output.write('Sequence Number: ' + seq_ct + '\n') # header to record sequence number 
+            output.write(f'Sequence Number: {seq_ct}' + '\n') # header to record sequence number 
             analysis = subAnalysis(ref_seq = ref_sequence, input_seq = line) # analyze input sequence agaisnt reference sequence
             # write analysis results to output file
-            output.write('Mismatched Indexes: ' + analysis[0] + '\n')
-            output.write('Sequence Identity: ' + analysis[1] + '\n') 
+            output.write(f'Mismatched Indexes: {analysis[0]}' + '\n')
+            output.write(f'Sequence Identity: {analysis[1]}' + '\n') 
             # flow control to determine if results are displayed to the console
             if args.verbose:
-                print('Sequence Number: ' + seq_ct)
+                print(f'Sequence Number: {seq_ct}')
                 print('Found Substitution Indexes:')
                 print(analysis[0])
                 print('Sequence Identity: ')
