@@ -3,7 +3,7 @@ import os
 
 ## --- Program Argument Managment --- ##
 parser = argparse.ArgumentParser(
-    prog='compareSEQ2',
+    prog='mutationAnalysis2',
     description='compares sequences to input reference seqeunce for sequence identity with only basic seqeunce comparison functionality (substitutions)',
     epilog='For more complex sequence analysis, use _________'
 )
@@ -138,7 +138,7 @@ def SEQanalyzer (reference_sequence, query_sequence, report_file, window_size):
     for i in range(range_length):
         if query_sequence[i] != reference_sequence[i]:
             analysis = mutationIdentifier(reference_sequence, r_index, query_sequence, q_index)
-            report_file.write(analysis[0] + '\t' + analysis[1] + '\t' + analysis[2] + '\n')
+            report_file.write(f"{analysis[0]}\t{analysis[1]}\t{analysis[2]}\n")
             r_index = analysis[3]
             q_index = analysis[4]
         else:
