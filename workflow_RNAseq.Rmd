@@ -1,0 +1,280 @@
+---
+title: "workflow_RNAseq"
+author: "Joshua Glowalla"
+date: "03292026"
+output:
+  html_document:
+      toc: TRUE #toc = table of contents
+      toc_float: TRUE
+      toc_depth: 4
+      fig_caption: yes
+      code_folding: hide
+      number_sections: TRUE
+vignette: >
+    %\VignetteIndexEntry{Text}
+    %\usepackage[utf8]{inputenc}
+    %\VignetteEngine{knitr::rmarkdown}
+fontsize: 13pt
+editor_options:
+  chunk_output_type: console
+---
+
+
+# NCBI GEO Data
+
+```{r data, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", results='show', cache=FALSE}
+
+# load base packages and data processing functions for R analysis of biological data
+source("Rtools/load_baseline.R")
+source("Rtools/load_dataProcessing.R")
+
+# load counts table from GEO
+urld <- "https://www.ncbi.nlm.nih.gov/geo/download/?format=file&type=rnaseq_counts"
+path <- paste(urld, "acc=GSE81046", "file=GSE81046_raw_counts_GRCh38.p13_NCBI.tsv.gz", sep="&");
+tbl <- as.matrix(data.table::fread(path, header=T, colClasses="integer"), rownames=1)
+
+# Load species annotation table from GEO
+apath <- paste(urld, "type=rnaseq_counts", "file=Human.GRCh38.p13.annot.tsv.gz", sep="&")
+annot <- data.table::fread(apath, header=T, quote="", stringsAsFactors=F, data.table=F)
+rownames(annot) <- annot$GeneID
+
+# Load sample annotations table from GEO
+sample_table = read.csv("GSE81046_SraRunTable.csv")
+table(colnames(tbl) == sample_table$GEO_Accession..exp.)
+
+# removal of gene duplicates 
+table(rownames(tbl)==rownames(annot))
+table(duplicated(annot$Symbol))
+duplicated_indexs = IndexDuplication(annot, "Symbol")
+RNAseqCounts = data.frame(tbl[-duplicated_indexs,])
+gene_metaData = data.frame(annot[-duplicated_indexs,])
+sample_metaData = data.frame(sample_table)
+
+
+# finalize data format
+rownames(RNAseqCounts) = c(gene_metaData$Symbol)
+rownames(gene_metaData) = c(gene_metaData$Symbol)
+
+# Remove unnecessary script elements
+rm(tbl, annot, sample_table)
+
+```
+
+# Data QC and Filtering
+
+## Code Chunk Part 1
+
+``` {r data_QC1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# == pre-filter low count genes == #
+# keep genes with at least 2 counts > 10
+keep <- rowSums( RNAseqCounts >= 10 ) >= round(dim(sample_metaData)[1]*0.10)
+table(keep)
+RNAseqCounts <- RNAseqCounts[keep,]
+
+# == Data Normalization == #
+# TPM normalization 
+RNAseqCounts_TPM = normTPM(RNAseqCounts, gene_metaData, "Length")
+
+par(mfrow = c(2,2))
+# data set too large to render as boxplot so sample indexes are sampled to show goodness of fit
+sample_sampling = sample(x = 1:503, size = 100) # first smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # second sampling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # third sampling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+
+## assessment of variance stabilization of log transformation and TPM normalization
+par(mfrow = c(2,2))
+varTable = varianceEval(RNAseqCounts, plot_title = "Raw Counts Variance Stability", table_return = TRUE, scatter_return = TRUE)
+TPM_varTable = varianceEval(RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", table_return = TRUE, scatter_return = TRUE)
+log_varTable = varianceEval(log2(RNAseqCounts)+1, plot_title = "log2 Transformed Raw Counts Variance Stability", table_return = TRUE, scatter_return = TRUE)
+logTPM_varTable = varianceEval(log2(RNAseqCounts_TPM)+1, plot_title = "log2 Transformed TPM Normalization Variance Stability", table_return = TRUE, scatter_return = TRUE)
+# add gene symbols to data structures for readability
+rownames(varTable) = rownames(RNAseqCounts)
+rownames(log_varTable) = rownames(RNAseqCounts)
+rownames(TPM_varTable) = rownames(RNAseqCounts_TPM)
+rownames(logTPM_varTable) = rownames(RNAseqCounts_TPM)
+# reorder tables by total variance 
+varTable = varTable[order(varTable$variance, decreasing = TRUE),]
+log_varTable = log_varTable[order(log_varTable$variance, decreasing = TRUE),]
+TPM_varTable = TPM_varTable[order(TPM_varTable$variance, decreasing = TRUE),]
+logTPM_varTable = logTPM_varTable[order(logTPM_varTable$variance, decreasing = TRUE),]
+# compare top variance genes by normalization and transformation methods
+head(varTable, n = 10)
+head(TPM_varTable, n = 10)
+head(log_varTable, n = 10)
+head(logTPM_varTable, n = 10)
+# SD vs mean plots to aid in variance stabilization assessment
+# library(ggplot2)
+# library(gridExtra)
+grid.arrange(MSDplot(varTable, "Raw Counts"), MSDplot(log_varTable, "log2 Transformed Raw Counts"), MSDplot(TPM_varTable, "TPM Normalized Counts"), MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), ncol = 2, nrow = 2, top = "SD vs Mean Plots")
+
+# transform TPM normalized data
+RNAseqCounts_TPM = log2(RNAseqCounts_TPM) + 1
+RNAseqCounts_TPM[RNAseqCounts_TPM == Inf | RNAseqCounts_TPM == -Inf] = 0 # remove Inf and -Inf values
+
+# Clear system memory
+rm(keep, sample_sampling)
+```
+
+## Discussion Part 1
+
+Transformation (log2) provides a significant stabilization of variance across species (genes) for the count data, which is confirmed when comparing the log2 transformed raw counts with the Transcripts per Million (TPM) normalization.  Top variance genes become synonymous between raw counts and TPM normalization after transformation; however, from further analysis of the stabilization of variance across all species improvements to the stabilization is made by the TPM normalization (see 'SD vs Mean Plots').  TPM normalization is a viable method to compare expression profiles because it normalizes by gene length (within sample) and by sequencing depth (between samples) although this method is not considered the most robust way to normalize and 'de-noise' RNAseq data.  To validate and potentially refute this normalization and transformation of the data for downstream analysis, the vst() normalization methods from the DEseq2 package will be evaluated for comparison. rlog() normalization will be overlooked as the sample count is extremely high (503) and this normalization method is better fro low sample counts due to the computational burden of the algorithm. 
+
+
+``` {r data_QC2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+library(DESeq2) # DESeq2 package contains robust normalization methods and differential expression worflow 
+rownames(sample_metaData) = colnames(RNAseqCounts) # add rownames to match column names in count matrix
+sample_metaData$infection = factor(sample_metaData$infection, levels = c("Non-infected", "Listeria", "Salmonella")) # convert feature varaible under analysis to factors to facilitate differential expression analysis
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection) # DEseq obejct
+deSEQ_vst = vst(deSEQ) # VST normalization of raw data
+RNAseqCounts_vst = assay(deSEQ_vst) # extract VST nromalized data
+
+# visualize normalization for comparison
+par(mfrow= c(2,1))
+sample_sampling = sample(x = 1:503, size = 100) # first smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # second smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # third smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+
+# Variance Stabilization
+par(mfrow = c(1,2))
+vst_varTable = varianceEval(RNAseqCounts_vst, plot_title = "VST Normalization", table_return = TRUE, scatter_return = TRUE)
+
+# Compare SD vs Mean plots between VST and RPM normalization
+grid.arrange(MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), MSDplot(vst_varTable, "VST Normalization"), nrow = 1, ncol = 2, top = "SD vs Mean Plots: Comparing TPM and VST")
+
+# clear system memory
+rm(sample_sampling)
+
+```
+
+## Discussion Part 2
+
+Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM basically has two distinct stabilized groups, arguably three with a transition group between the two.  VST osciliation trend may suggest better stabilization of variance across the range of means between species.  
+
+# Exploratory Analysis
+
+## Code Chunk
+
+``` {r EA1_HC, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# load EA functions
+source("Rtools/load_exploratoryAnalysis.R")
+
+# == Hierarchical Clustering by Sample == #
+# bottom-up HC is done by sample to explore how well the biological context groups the samples, distance calculation and linkage is crucial 
+# cophenetic distance calculations to optimize HC
+cophTable = copheneticEval(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)))
+cophTable
+max(cophTable)
+
+# visualize correlation between linkage methods 
+print("Linkage Methods")
+print(c("1.ward.D", "2.ward.D2", "3.single", "4.complete", "5.average", "6.mcquitty", "7.median", "8.centroid"))
+linkageCorrelation(count_data=RNAseqCounts_vst,feature_labels=c(t(sample_metaData$infection)),dist_calculation="Euclidean", plot_title = "Euclidean Distance_VST Normalization Counts")
+
+# visualize and analyze optimized hierarchical clustering 
+HC_vst = hclustering_object(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "Quality Control")
+cut = cutree(HC_vst, k = 6)
+table(cut)
+analyzeTree(cut, feature_factors = c("Non-infected", "Listeria", "Salmonella"), feature_labels = c(t(sample_metaData$infection)))
+plot(color_branches(HC_vst, k = 6))
+
+# clear system memory 
+rm(cophTable, cut, HC_vst)
+```
+
+## Discussion
+
+Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  These optimized parameters were validated by its accuracy to cluster samples by infection type (Non-infected, Listeria, and Salmonella) in which it accurately cluster ~160 samples for each of these features with minimal outliers in branches in low leaf count (4 or less).  Clustering by infection type was at least 98% accurate.  These results suggest that the expression profiles of the samples can be characterized by the infection type and supports the general hypothesis of existence of macrophage biomarkers for different infection types.  It is important to note that although these results support this hypothesis the height at which these branches were cut suggests that expression profiles between samples with each infection type are still considerably dissimilar.  Further exploratory analysis should be conducted to evaluate the data by samples.  
+
+## Code Chunk
+
+``` {r EA2_PCA, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# PCA
+
+
+```
+
+## Discussion
+
+## Code Chunk
+
+``` {r EA3_, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# load EA functions
+source("Rtools/exploratoryAnalysis.R")
+
+# Hierarchical Clustering by Sample
+# bottom-up HC is done by sample to explore how well the biological context groups the samples, distance calculation and linkage is crucial 
+
+
+# PCA
+
+# UMAP
+
+```
+
+## Discussion
+
+# Section Title
+
+## Code Chunk
+
+``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+
+
+```
+
+## Discussion
+
+
+
+# Question 3
+
+## Code Chunk
+
+``` {r Q3, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+```
+
+## Discussion
+
+
+
+# Question 4
+
+## Code Chunk
+
+``` {r Q4, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+```
+
+## Discussion

@@ -8,11 +8,13 @@
   # plot3D = logical value to determine if a 3D plot will be generated; default = FALSE
   # usage = single element character vector to frame the PCA by either sample scores or species loading; default is set to "sample" but can also be set to "species"
   # return = logical value to determine if the prcomp object (PCA) is returned
+# dependencies
+  # Biogenerics
+  # rgl
 
-library(rgl); library(BiocGenerics)
 plotPCA = function (count_data = NA, feature_labels = NA, plot2D = TRUE, plot3D = FALSE, usage = "sample", return = FALSE) {
   # errors and flags
-  if (is.na(count_data)) {stop("requires a count matrix or equivalaent")}
+  if (!(length(count_data)>1) & is.na(count_data)) {stop("must provide count data to perform PCA")}
   if (is.na(feature_labels)) {stop("must provide a character vector of sample features under investigation for the feature_labels argument")}
   if (length(c(t(pca_object$x[,1]))) != length(feature_labels)) {stop("feature_labels argument vector must be the same number of samples used for the prcomp object")}
   

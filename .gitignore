@@ -7,3 +7,5 @@ Thumbs.db
 *.DS_Store
 
 .Rproj.user
+workflow_RNAseq.RDataTmp
+workflow_RNAseq.RData
