@@ -182,7 +182,7 @@ rm(sample_sampling)
 
 Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM basically has two distinct stabilized groups, arguably three with a transition group between the two.  VST osciliation trend may suggest better stabilization of variance across the range of means between species.  
 
-# Exploratory Analysis
+# Exploratory Analysis by Sample 
 
 ## Code Chunk
 
@@ -221,9 +221,40 @@ Hierarchical clustering was optimized using the cophenetic correlation coefficie
 
 ``` {r EA2_PCA, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # PCA
+#plot()
+pca_vst = plotPCA (count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), plot2D = TRUE, plot3D = FALSE, usage = "sample", return = TRUE)
+#ggplot
+set.seed(3)
+ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), usage = "sample", return = FALSE)
 
+# screeplot
+screeplot(pca_vst, npcs = 20, type = "barplot")
 
+# clear system memory
+set.seed(NULL)
+rem(pca_vst)
 ```
+
+# Exploratory Analysis by Genes
+
+## Code Chunk
+
+``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# PCA
+
+loadings_pc1_PCAgene = pca_vst$rotation[,1]
+top_loading_pc1 = sort(abs(loadings_pc1_PCAgene), decreasing = TRUE)
+head(top_loading_pc1, n = 10)
+min(top_loading_pc1)
+top_loadingGenes = attributes(top_loading_pc1)$names
+
+pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+
+dim(pca_vst$x)
+dim(pca_genes$x)
+```
+
+## Discussion
 
 ## Discussion
 
@@ -233,11 +264,7 @@ Hierarchical clustering was optimized using the cophenetic correlation coefficie
 # load EA functions
 source("Rtools/exploratoryAnalysis.R")
 
-# Hierarchical Clustering by Sample
-# bottom-up HC is done by sample to explore how well the biological context groups the samples, distance calculation and linkage is crucial 
-
-
-# PCA
+# k-means clustering 
 
 # UMAP
 
