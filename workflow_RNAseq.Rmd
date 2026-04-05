@@ -242,13 +242,24 @@ rem(pca_vst)
 ``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # PCA
 
+pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+
+sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Contributing Genes", input_type = "pca")
+sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Contributing Genes", input_type = "pca", visualize = TRUE)
+
+
+
 loadings_pc1_PCAgene = pca_vst$rotation[,1]
 top_loading_pc1 = sort(abs(loadings_pc1_PCAgene), decreasing = TRUE)
 head(top_loading_pc1, n = 10)
 min(top_loading_pc1)
-top_loadingGenes = attributes(top_loading_pc1)$names
+top_loadingGenes = attributes(top_loading_pc1)$names[1:10]
+top_genePC =as.matrix(pca_genes$x)
+rownames(top_genePC) = rownames(RNAseqCounts_vst)
+top_genePC = top_genePC[c(top_loadingGenes),]
 
-pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+
+
 
 dim(pca_vst$x)
 dim(pca_genes$x)
