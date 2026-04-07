@@ -272,10 +272,13 @@ dim(pca_genes$x)
 ## Code Chunk
 
 ``` {r EA3_, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-# load EA functions
-source("Rtools/exploratoryAnalysis.R")
 
 # k-means clustering 
+kclusterOptimize(pca_genes$x[,1:3], cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = FALSE)
+kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = TRUE)
+
+kmeans_genes = kmeans(x = RNAseqCounts_vst, centers = 3)
 
 # UMAP
 
