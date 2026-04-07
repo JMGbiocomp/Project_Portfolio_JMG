@@ -4,12 +4,14 @@
 # Includes heirarchical clustering, PCA, and 
 #
 
-package_list = c("dendextend", "corrplot", "rgl", "PoiClaClu")
+package_list = c("dendextend", "corrplot", "rgl", "PoiClaClu","ggrepel", "ggpubr")
 PackageDependency(package_list)
 library("dendextend")
 library("corrplot") 
 library("rgl")
 library("PoiClaClu")
+library("ggrepel")
+library("ggpubr")
 
 source("Rtools/function_hclusteringObject.R")
 source("Rtools/function_linkageCorrelation.R")

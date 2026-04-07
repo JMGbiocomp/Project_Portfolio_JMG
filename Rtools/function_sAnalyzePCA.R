@@ -17,7 +17,7 @@
   # gridExtras
 
 
-sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_type = "count", pcaData_1, pcaData2, cutoff_overide = FALSE, cutoff = 1.1, visualize = FALSE, visual_count = 10) {
+sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_type = "count", pcaData_1, pcaData2, cutoff_overide = FALSE, cutoff = 1.1, visualize = FALSE, visual_count = 10, return = FALSE) {
   # flow control to generate and/or define pca objects
   if (input_type == "count") {
     pca_feature = prcomp(x = (t(count_data)), scale = FALSE)
@@ -54,6 +54,7 @@ sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_
   } else if (input_type == "pca") {
     rownames(top_loaders) = species_labels
   }
+  v_names = unique(v_names)
   top_genes = unique(top_genes)
   top_loaders = top_loaders[top_genes,]
   groups = rownames(top_loaders) # get all top contributing gene names
@@ -62,13 +63,19 @@ sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_
   
   # create 2D plots for PCA
   if (visualize == TRUE) {
-    v_colors = sample(x = colors(distinct = TRUE), size = length(v_names), replace = TRUE)
+    v_colors = rainbow(length(v_names))
     # PC1 vs PC2
-    p1 = ggplot(data = top_loaders, aes(x = PC1, y = PC2)) + geom_point(color = "grey", size = 1.5, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5) + geom_text(data = top_loaders[v_names,], aes(label = v_names), vjust = -1)
+    p1 = ggplot(data = top_loaders, aes(x = PC1, y = PC2)) + geom_point(color = "grey", size = 1, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1) + geom_text_repel(data = top_loaders[v_names,], aes(label = v_names), vjust = -1, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #p1 = ggplot(data = top_loaders, aes(x = PC1, y = PC2)) + geom_point(color = "grey", size = 1.5) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #ggplot(data = top_loaders, aes(x = PC1, y = PC2)) + geom_point(color = "grey", size = 1) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1, show.legend = TRUE)
     # PC1 vs PC3
-    p2 = ggplot(data = top_loaders, aes(x = PC1, y = PC3)) + geom_point(color = "grey", size = 1.5, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5) + geom_text(data = top_loaders[v_names,], aes(label = v_names), vjust = -1)
+    p2 = ggplot(data = top_loaders, aes(x = PC1, y = PC3)) + geom_point(color = "grey", size = 1, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1) + geom_text_repel(data = top_loaders[v_names,], aes(label = v_names), vjust = -1, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #p2 = ggplot(data = top_loaders, aes(x = PC1, y = PC3)) + geom_point(color = "grey", size = 1.5) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #ggplot(data = top_loaders, aes(x = PC1, y = PC3)) + geom_point(color = "grey", size = 1) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1, show.legend = TRUE)
     # PC2 vs PC3
-    p3 = ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1.5, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5) + geom_text(data = top_loaders[v_names,], aes(label = v_names), vjust = -1)
+    p3 = ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1, show.legend = FALSE) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1) + geom_text_repel(data = top_loaders[v_names,], aes(label = v_names), vjust = -1, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #p3 = ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1.5) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    #ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1, show.legend = TRUE)
     #grid
     grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = main_title)
   } else {
@@ -82,5 +89,11 @@ sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_
     grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = main_title)
   }
   
-  if (return == TRUE) {return(top_loaders)}
+  if (return == "PC") {
+    return(top_loaders)
+  } else if (return == "genes") {
+    return(v_names)
+  } else if (return == FALSE) {
+    print("PC loading analysis complete without return")
+  }
 }

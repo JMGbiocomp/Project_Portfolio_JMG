@@ -169,6 +169,8 @@ boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transform
 # Variance Stabilization
 par(mfrow = c(1,2))
 vst_varTable = varianceEval(RNAseqCounts_vst, plot_title = "VST Normalization", table_return = TRUE, scatter_return = TRUE)
+rownames(vst_varTable) = rownames(RNAseqCounts_vst)
+vst_varTable = vst_varTable[order(vst_varTable$variance, decreasing = TRUE),]
 
 # Compare SD vs Mean plots between VST and RPM normalization
 grid.arrange(MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), MSDplot(vst_varTable, "VST Normalization"), nrow = 1, ncol = 2, top = "SD vs Mean Plots: Comparing TPM and VST")
@@ -228,7 +230,8 @@ set.seed(3)
 ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), usage = "sample", return = FALSE)
 
 # screeplot
-screeplot(pca_vst, npcs = 20, type = "barplot")
+par(mfrow = c(1,1))
+screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
 
 # clear system memory
 set.seed(NULL)
@@ -245,24 +248,14 @@ rem(pca_vst)
 pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
 
 sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Contributing Genes", input_type = "pca")
-sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Contributing Genes", input_type = "pca", visualize = TRUE)
+gena_namesPCA = sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
+gena_namesPCA
+
+top_pca_gene = plotPCA(count_data = RNAseqCounts_vst[rownames(vst_varTable)[1:500],], feature_labels = rownames(vst_varTable)[1:500], usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+top_pca_sample = plotPCA(count_data = RNAseqCounts_vst[rownames(vst_varTable)[1:500],], feature_labels = c(sample_metaData$infection), usage = "sample", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+sAnalyzePCA(pcaData_1 = top_pca_sample , pcaData2 = top_pca_gene, species_labels = rownames(vst_varTable)[1:500], main_title = "Filtered PCA for Top Contributing Genes", input_type = "pca",visualize = TRUE, visual_count = 5, return = "genes")
 
 
-
-loadings_pc1_PCAgene = pca_vst$rotation[,1]
-top_loading_pc1 = sort(abs(loadings_pc1_PCAgene), decreasing = TRUE)
-head(top_loading_pc1, n = 10)
-min(top_loading_pc1)
-top_loadingGenes = attributes(top_loading_pc1)$names[1:10]
-top_genePC =as.matrix(pca_genes$x)
-rownames(top_genePC) = rownames(RNAseqCounts_vst)
-top_genePC = top_genePC[c(top_loadingGenes),]
-
-
-
-
-dim(pca_vst$x)
-dim(pca_genes$x)
 ```
 
 ## Discussion
@@ -272,8 +265,6 @@ dim(pca_genes$x)
 ## Code Chunk
 
 ``` {r EA3_, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-# load EA functions
-source("Rtools/exploratoryAnalysis.R")
 
 # k-means clustering 
 
