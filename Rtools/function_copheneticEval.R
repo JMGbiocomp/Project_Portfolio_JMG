@@ -10,7 +10,7 @@
 copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculation = c("Euclidean", "Pearson", "Spearman", "Manhattan"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), usage = "Quality Control") {
   # errors and flags
   
-  if (length(feature_labels) != dim(count_data)[2]) {stop("the number of feature labels must equal the number of features (samples)")}
+  if (length(feature_labels) != dim(count_data)[2] & usage != "reduction") {stop("the number of feature labels must equal the number of features (samples)")}
   
   linkage.ct = length(linkage_methods) # number of linkage methods
   dist.ct = length(dist_calculation) # number of distance calculation methods
@@ -25,15 +25,49 @@ copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculatio
     for (l in linkage_methods) {
       h_object = hclustering_object(count_data = count_data, feature_labels = feature_labels, object_type = "hclust", distance_type = d, linkage_method = l, usage = usage, dend_plot = FALSE)
       if (d == "Pearson") {
-        dist_matrix = as.dist(1-stats::cor(t(count_data)))
+        if (usage == "reduction") {
+          dist_matrix = as.dist(1-stats::cor(count_data))
+          dist_matrix = as.matrix(dist_matrix)
+        } else {
+          dist_matrix = as.dist(1-stats::cor(t(count_data)))          
+        }
       } else if (d == "Spearman") {
-        dist_matrix = as.dist(1-stats::cor(t(count_data), method = "spearman"))
+        if (usage == "reduction") {
+          dist_matrix = as.dist(1-stats::cor(count_data, method = "spearman"))
+          dist_matrix = as.matrix(dist_matrix)
+        } else {
+          dist_matrix = as.dist(1-stats::cor(t(count_data), method = "spearman"))          
+        }
       } else if (d == "Manhattan") {
-        dist_matrix = dist(t(count_data), method = "manhattan")
+        if (usage == "reduction") {
+          dist_matrix = dist(count_data, method = "manhattan")
+          dist_matrix = as.matrix(dist_matrix)
+        } else {
+          dist_matrix = dist(t(count_data), method = "manhattan")          
+        }
       } else {
-        dist_matrix = dist(t(count_data), method = "euclidean")
+        if (usage == "reduction") {
+          dist_matrix = dist(count_data, method = "euclidean")
+          dist_matrix = as.matrix(dist_matrix)
+        } else {
+          dist_matrix = dist(t(count_data), method = "euclidean")          
+        }
       }
-      output_df[d,l] = cor(dist_matrix, cophenetic(h_object)) # calculation of cophenetic coefficient between cophenetic distacne and distance calculation matrices
+      if (usage == "reduction") {
+        coph_matrix = cophenetic(h_object)
+        coph_matrix = as.matrix(coph_matrix)
+        #print(dim(coph_matrix))
+        #print(dim(dist_matrix))
+        dist_matrix = as.vector(dist_matrix)
+        coph_matrix = as.vector(coph_matrix)
+        #print(length(coph_matrix))
+        #print(length(dist_matrix))
+        coph_coeff = cor(dist_matrix, coph_matrix) # calculation of cophenetic coefficient between cophenetic distacne and distance calculation matrices
+        #print(dim(coph_coeff))
+        output_df[d,l] = coph_coeff
+      } else {
+        output_df[d,l] = cor(dist_matrix, cophenetic(h_object)) # calculation of cophenetic coefficient between cophenetic distance and distance calculation matrices
+      }
     }
   }
   return(output_df)

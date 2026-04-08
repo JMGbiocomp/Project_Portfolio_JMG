@@ -200,24 +200,22 @@ cophTable
 max(cophTable)
 
 # visualize correlation between linkage methods 
-print("Linkage Methods")
+print("Linkage Methods:")
 print(c("1.ward.D", "2.ward.D2", "3.single", "4.complete", "5.average", "6.mcquitty", "7.median", "8.centroid"))
 linkageCorrelation(count_data=RNAseqCounts_vst,feature_labels=c(t(sample_metaData$infection)),dist_calculation="Euclidean", plot_title = "Euclidean Distance_VST Normalization Counts")
 
 # visualize and analyze optimized hierarchical clustering 
 HC_vst = hclustering_object(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "Quality Control")
-cut = cutree(HC_vst, k = 6)
-table(cut)
-analyzeTree(cut, feature_factors = c("Non-infected", "Listeria", "Salmonella"), feature_labels = c(t(sample_metaData$infection)))
-plot(color_branches(HC_vst, k = 6))
+optimizeTree(hc_object = HC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection))
+plot(color_branches(HC_vst, k = 8))
 
 # clear system memory 
-rm(cophTable, cut, HC_vst)
+rm(cophTable, HC_vst)
 ```
 
 ## Discussion
 
-Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  These optimized parameters were validated by its accuracy to cluster samples by infection type (Non-infected, Listeria, and Salmonella) in which it accurately cluster ~160 samples for each of these features with minimal outliers in branches in low leaf count (4 or less).  Clustering by infection type was at least 98% accurate.  These results suggest that the expression profiles of the samples can be characterized by the infection type and supports the general hypothesis of existence of macrophage biomarkers for different infection types.  It is important to note that although these results support this hypothesis the height at which these branches were cut suggests that expression profiles between samples with each infection type are still considerably dissimilar.  Further exploratory analysis should be conducted to evaluate the data by samples.  
+Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  To effectively cluster samples by treatment with ~ 98% true postives, 6 clusters was optimal.  Bewcuase there are only 3 identified treatment groups, either more relevant (and unintended) biological variation exists within the data or enough noise/expression bias is present that to generate significant outliers.  To reveal the root of the observation, dimensional reduction of the data set can be performed to eliminate noise and expression bias between species.  If this approach proves fruitful, it can be safe to conclude that the biological feature in question is robust enough for differential analysis by sample and important species are present driving these differences, which can serve as potential biomarkers for macrophage infection response.  
 
 ## Code Chunk
 
@@ -233,10 +231,44 @@ ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$in
 par(mfrow = c(1,1))
 screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
 
+## post-PCA hiuerarchical clustering by sample
+# revisit optimization
+cophTable_pca = copheneticEval(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
+cophTable_pca
+max(cophTable)
+
+# perfrom hierarchical clustering by sample
+pcaHC_vst = hclustering_object(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "reduction")
+table(sample_metaData$infection) # number of samples by infection type
+optimizeTree(pca_object = pcaHC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # reports which samples by feature are clustered within each cluster
+plot(color_branches(pcaHC_vst, k = 3)) # plot optimal clustering number found from analysis
+
 # clear system memory
 set.seed(NULL)
-rem(pca_vst)
+rm()
 ```
+
+## Discussion
+
+PCA was performed to reduce the dimension of the count data set.  Covariance captured within PC1 aligns perfectly with the experimental treatment.  PC2 captures variance in a dimension that does not exhibit any alignment with infection type while PC3 does well at separating infection from non-infection samples, suggesting that the variance in this dimension has some sort of biological relevance in line with the experiment.  A screeplot identifies that the overwhelming majority of the covariance within the data is captured within the first 4 PCs.  After truncating the data along with the dimensional reduction of PCA (use of PCs 1-4), outliers from previous hierarchical clustering by samples were avoided and were able to cluster the groups to experimental infection treatments with 100% accuracy and reflect the PCA results interpretation. Other dimensional reduction techniques are viable for reducing the noise and improving the expression bias.  TO follow up, t-SNE and UMAp methods will be optimized and then evaluated.  
+
+## Code Chunk
+
+``` {r EA3_tSNE_UMAP, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+#t-SNE
+tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
+tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 28)
+# UMAP
+umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
+umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 20)
+
+
+```
+
+## Discussion
+
+Successful optmimization of dimensional reduction methods t-SNE and UMAP to well represent the treatment groups.  CLuster analysis must be performed to cooraborate the results for all three methods.  
 
 # Exploratory Analysis by Genes
 
@@ -271,7 +303,8 @@ kclusterOptimize(pca_genes$x[,1:3], cluster_range = 10, iteration_max = 10, kmea
 kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = FALSE)
 kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = TRUE)
 
-kmeans_genes = kmeans(x = RNAseqCounts_vst, centers = 3)
+kmeans_genes = kmeans(x = pca_genes$x[,1:3], centers = 3)
+
 
 # UMAP
 
