@@ -81,24 +81,24 @@ par(mfrow = c(2,2))
 sample_sampling = sample(x = 1:503, size = 100) # first smapling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
-boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
-boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
-boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
 sample_sampling = sample(x = 1:503, size = 100) # second sampling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
-boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
-boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
-boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
 sample_sampling = sample(x = 1:503, size = 100) # third sampling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts[sample_sampling,], main = "Raw Counts")
-boxplot(RNAseqCounts_TPM[sample_sampling,], main = "TPM Normalization")
-boxplot(log2(RNAseqCounts[sample_sampling,])+1, col = "lightblue", main = "log2 Raw Counts")
-boxplot(log2(RNAseqCounts_TPM[sample_sampling,])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
 
 ## assessment of variance stabilization of log transformation and TPM normalization
 par(mfrow = c(2,2))
@@ -124,7 +124,7 @@ head(logTPM_varTable, n = 10)
 # SD vs mean plots to aid in variance stabilization assessment
 # library(ggplot2)
 # library(gridExtra)
-grid.arrange(MSDplot(varTable, "Raw Counts"), MSDplot(log_varTable, "log2 Transformed Raw Counts"), MSDplot(TPM_varTable, "TPM Normalized Counts"), MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), ncol = 2, nrow = 2, top = "SD vs Mean Plots")
+gridExtra::grid.arrange(MSDplot(varTable, "Raw Counts"), MSDplot(log_varTable, "log2 Transformed Raw Counts"), MSDplot(TPM_varTable, "TPM Normalized Counts"), MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), ncol = 2, nrow = 2, top = "SD vs Mean Plots")
 
 # transform TPM normalized data
 RNAseqCounts_TPM = log2(RNAseqCounts_TPM) + 1
@@ -153,18 +153,18 @@ par(mfrow= c(2,1))
 sample_sampling = sample(x = 1:503, size = 100) # first smapling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
-boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
 sample_sampling = sample(x = 1:503, size = 100) # second smapling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
-boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
 sample_sampling = sample(x = 1:503, size = 100) # third smapling
 print("Sample Indexes:")
 print(sample_sampling)
-boxplot(RNAseqCounts_TPM[sample_sampling,], col = "lightgreen", main = "log2 Transformed TPM Normalization")
-boxplot(RNAseqCounts_vst[sample_sampling,], col = "pink", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
 
 # Variance Stabilization
 par(mfrow = c(1,2))
@@ -173,7 +173,7 @@ rownames(vst_varTable) = rownames(RNAseqCounts_vst)
 vst_varTable = vst_varTable[order(vst_varTable$variance, decreasing = TRUE),]
 
 # Compare SD vs Mean plots between VST and RPM normalization
-grid.arrange(MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), MSDplot(vst_varTable, "VST Normalization"), nrow = 1, ncol = 2, top = "SD vs Mean Plots: Comparing TPM and VST")
+gridExtra::grid.arrange(MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), MSDplot(vst_varTable, "VST Normalization"), nrow = 1, ncol = 2, top = "SD vs Mean Plots: Comparing TPM and VST")
 
 # clear system memory
 rm(sample_sampling)
@@ -184,7 +184,9 @@ rm(sample_sampling)
 
 Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM basically has two distinct stabilized groups, arguably three with a transition group between the two.  VST osciliation trend may suggest better stabilization of variance across the range of means between species.  
 
-# Exploratory Analysis by Sample 
+# Exploratory Analysis by Sample
+
+Performing exploratory analysis by sample is valuable to investigate how well the experimental treatments and/or sample features captures the structure of the expression data.  It is a quality control method as well as validation technique that the assume biological relevance of the experiment is reflected within the data.  The data can undergo cluster analysis/clustering without any dimensional redcution or post-reduction, which helps eliminate noise and expression-level bias prior to clustering.  Ideally, the data feature in question, which represents the experimental design, clusters well and reinforces the pursuit of downstream analysis to find differentiated expressed genes and potential biomarkers. 
 
 ## Code Chunk
 
@@ -202,6 +204,7 @@ max(cophTable)
 # visualize correlation between linkage methods 
 print("Linkage Methods:")
 print(c("1.ward.D", "2.ward.D2", "3.single", "4.complete", "5.average", "6.mcquitty", "7.median", "8.centroid"))
+par(mfrow = c(1,1))
 linkageCorrelation(count_data=RNAseqCounts_vst,feature_labels=c(t(sample_metaData$infection)),dist_calculation="Euclidean", plot_title = "Euclidean Distance_VST Normalization Counts")
 
 # visualize and analyze optimized hierarchical clustering 
@@ -210,12 +213,12 @@ optimizeTree(hc_object = HC_vst, leaf_count = 6, feature_labels = c(sample_metaD
 plot(color_branches(HC_vst, k = 8))
 
 # clear system memory 
-rm(cophTable, HC_vst)
+# rm(cophTable, HC_vst)
 ```
 
 ## Discussion
 
-Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  To effectively cluster samples by treatment with ~ 98% true postives, 6 clusters was optimal.  Bewcuase there are only 3 identified treatment groups, either more relevant (and unintended) biological variation exists within the data or enough noise/expression bias is present that to generate significant outliers.  To reveal the root of the observation, dimensional reduction of the data set can be performed to eliminate noise and expression bias between species.  If this approach proves fruitful, it can be safe to conclude that the biological feature in question is robust enough for differential analysis by sample and important species are present driving these differences, which can serve as potential biomarkers for macrophage infection response.  
+Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  To effectively cluster samples by treatment with ~ 98% true postives, 6 clusters was optimal.  Because there are only 3 identified treatment groups, either more relevant (and unintended) biological variation exists within the data or enough noise/expression bias is present to generate significant outliers.  To reveal the root of the observation, dimensional reduction of the data set can be performed to eliminate noise and expression bias between species.  If this approach proves fruitful, it can be safe to conclude that the biological feature in question is robust enough for differential analysis by sample and important species are present driving these differences, which can serve as potential biomarkers for macrophage infection response.  
 
 ## Code Chunk
 
@@ -235,12 +238,13 @@ screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within th
 # revisit optimization
 cophTable_pca = copheneticEval(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
 cophTable_pca
-max(cophTable)
+max(cophTable_pca)
+linkageCorrelation(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), dist_calculation="Euclidean", usage = "reduction", plot_title = "Euclidean Distance_PCA reduction (PC1-4)")
 
 # perfrom hierarchical clustering by sample
 pcaHC_vst = hclustering_object(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "reduction")
 table(sample_metaData$infection) # number of samples by infection type
-optimizeTree(pca_object = pcaHC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # reports which samples by feature are clustered within each cluster
+optimizeTree(hc_object = pcaHC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # reports which samples by feature are clustered within each cluster
 plot(color_branches(pcaHC_vst, k = 3)) # plot optimal clustering number found from analysis
 
 # clear system memory
@@ -256,13 +260,27 @@ PCA was performed to reduce the dimension of the count data set.  Covariance cap
 
 ``` {r EA3_tSNE_UMAP, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
-#t-SNE
+# t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
 tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
 tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 28)
-# UMAP
+tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 28, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+# hclustering 
+cophTable_tsne = copheneticEval(count_data = tSNE_samples$Y, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
+cophTable_tsne
+# kmeans
+kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(tSNE_samples$Y, cluster_count = 3, normalize_comparison = TRUE)
+
+# UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
 umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
 umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 20)
-
+umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
+# hclustering 
+cophTable_umap = copheneticEval(count_data = umap_samples$layout, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
+cophTable_umap
+# kmeans
+kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(umap_samples$layout, cluster_count = 3, normalize_comparison = TRUE)
 
 ```
 
@@ -270,9 +288,52 @@ umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_meta
 
 Successful optmimization of dimensional reduction methods t-SNE and UMAP to well represent the treatment groups.  CLuster analysis must be performed to cooraborate the results for all three methods.  
 
+## Code Chunk
+
+``` {r EA3_FinalAnaly sis, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "pca", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+
+# tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+
+# UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
+
+```
+
+## Discussion
+
+Along with dimensionality reduction, clustering successfully captures the biological feature (macrophage infection response).  Reduction through PCA, hierarchical clustering was unable to match cluster number with infection type as several outliers distort the clustering.  At 6 perceived clusters, the bulk of the separation was finally captured via clustering.  Reduction through UMAP provides tighter clusters while tSNE generates clusters with a significantly wider spread. However, both algorithms still provide adequate inter-cluster spread. Each of the techniques was successful in matching the cluster number with infection type.  Based on these results infection type is captured well by the gene expression differences between samples.  Therefore, exploratory analysis by species (genes) will yield the genomic contribution to the phenotypic differences of macrophages by infection type.  
+
 # Exploratory Analysis by Genes
 
 ## Code Chunk
+
+``` {r explore_gene, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
+
+set.seed(3)
+ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", return = FALSE)
+
+# screeplot
+par(mfrow = c(1,1))
+screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
+
+cophTable = copheneticEval(count_data = pca_genes$x[1:], feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
+cophTable_tsne
+
+kclusterOptimize(pca_genes$x[,1:3], cluster_range = 20, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(pca_genes$x[,1:3], cluster_count = , normalize_comparison = TRUE)
+
+
+```
 
 ``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # PCA
@@ -303,7 +364,7 @@ kclusterOptimize(pca_genes$x[,1:3], cluster_range = 10, iteration_max = 10, kmea
 kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = FALSE)
 kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = TRUE)
 
-kmeans_genes = kmeans(x = pca_genes$x[,1:3], centers = 3)
+kmeans_sample = kmeans(x = pca_vst$x[,1:3], centers = 3)
 
 
 # UMAP

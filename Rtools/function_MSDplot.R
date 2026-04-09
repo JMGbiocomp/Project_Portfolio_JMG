@@ -10,5 +10,5 @@
 
 MSDplot = function (variance_table, plot_title) {
   variance_table[,"variance"] = sqrt(variance_table[,"variance"])
-  ggplot(data = variance_table, aes(x = mean, y = variance)) + geom_point(color = "blue", size = 1) + labs(title = plot_title, x = "Mean", y = "Variance") + geom_smooth(method="gam", col = "red", size = 0.3, se = FALSE)
+  ggplot(data = variance_table, aes(x = mean, y = variance)) + geom_point(color = "blue", size = 1) + labs(title = plot_title, x = "Mean", y = "Variance") + geom_smooth(method="gam", col = "red", size = 0.3, se = FALSE) + theme(panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
 }

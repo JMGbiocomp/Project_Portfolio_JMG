@@ -44,5 +44,5 @@ kclusterWithinSS = function (count_data, cluster_count, iteration_max = 10, kmea
   #print(clusters)
   #print(withinSS)
   p3 = ggplot(data = temp_df3, aes(x = clusters, withinSS)) + geom_col(fill = "steelblue", color = "black", linewidth = 0.5) + scale_x_continuous(breaks = 1:(cluster_count+1), labels = clusters) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-  grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = "Distribution of withinSS from kmeans Clustering")
+  gridExtra::grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = "Distribution of withinSS from kmeans Clustering")
 } 

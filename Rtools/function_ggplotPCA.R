@@ -21,7 +21,7 @@ ggplotPCA = function (count_data = NA, feature_labels = NA, usage = "sample", re
   if (length(c(t(pca_object$x[,1]))) != length(feature_labels)) {stop("feature_labels argument vector must be the same number of samples used for the prcomp object")}
   
   groups = unique(feature_labels) # identify only the unique labels
-  colors = sample(x = colors(distinct = TRUE), size = length(groups)) # color code vector to designate feature labels by color
+  colors = sample(x = colors(distinct = TRUE), size = length(groups), replace = TRUE) # color code vector to designate feature labels by color
   point_colors = colors[match(feature_labels, groups)] # generates a color code vector corresponding to each sample's feature
     
   # create 2D plots for PCA
@@ -32,7 +32,7 @@ ggplotPCA = function (count_data = NA, feature_labels = NA, usage = "sample", re
   # PC2 vs PC3
   p3 = ggplot(data = pca_object$x, aes(x = PC2, y = PC3, color = feature_labels)) + geom_point(size = 1.5) + scale_color_manual(values = colors) + labs(x = "PC2", y = "PC3")+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1)) # Optional: adds axis lines back)
   # grid
-  grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = "Principal Component Analysis")
+  gridExtra::grid.arrange(grobs = list(p1, p2, p3), nrow = 1, ncol = 3, top = "Principal Component Analysis")
   
   if (return == TRUE) {
     return(pca_object)

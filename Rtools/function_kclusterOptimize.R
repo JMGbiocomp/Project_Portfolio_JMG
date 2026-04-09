@@ -22,7 +22,7 @@ kclusterOptimize = function (count_data, cluster_range, iteration_max = 10, kmea
   }
   p1 = ggplot(data = temp_df, aes(x = k, y = ratioSS)) + geom_col(fill = "steelblue", color = "black", linewidth = 0.5) + scale_x_continuous(breaks = 1:cluster_range, labels = 1:cluster_range) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
   p2 = ggplot(data = temp_df, aes(x = k, y = total.withinSS)) + geom_col(fill = "steelblue", color = "black", linewidth = 0.5) + scale_x_continuous(breaks = 1:cluster_range, labels = 1:cluster_range) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-  grid.arrange(p1, p2, nrow = 1, ncol = 2, top = "Analysis of Sum of Squares for kmeans Clustering")
+  gridExtra::grid.arrange(p1, p2, nrow = 1, ncol = 2, top = "Analysis of Sum of Squares for kmeans Clustering")
   if (return == TRUE) {
     return(temp_df)
   }

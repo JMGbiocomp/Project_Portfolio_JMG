@@ -77,7 +77,7 @@ sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_
     #p3 = ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1.5) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1.5, show.legend = TRUE) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
     #ggplot(data = top_loaders, aes(x = PC2, y = PC3)) + geom_point(color = "grey", size = 1) + geom_point(data = top_loaders[v_names,], color = v_colors, size = 1, show.legend = TRUE)
     #grid
-    grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = main_title)
+    gridExtra::grid.arrange(grobs = list(p1, p2, p3), nrow = 1, ncol = 3, top = main_title)
   } else {
     # PC1 vs PC2
     p1 = ggplot(data = top_loaders, aes(x = PC1, y = PC2, color = point_colors))+ geom_point(size = 1.5) + scale_color_manual(values = colors) + labs(x = "PC1", y = "PC2") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none") # Optional: adds axis lines back)
@@ -86,7 +86,7 @@ sAnalyzePCA = function (count_data = NA, species_labels = NA, main_title, input_
     # PC2 vs PC3
     p3 = ggplot(data = top_loaders, aes(x = PC2, y = PC3, color = point_colors)) + geom_point(size = 1.5) + scale_color_manual(values = colors)  + labs(x = "PC2", y = "PC3")+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none") # Optional: adds axis lines back)
     # grid
-    grid.arrange(p1, p2, p3, nrow = 1, ncol = 3, top = main_title)
+    gridExtra::grid.arrange(grobs = list(p1, p2, p3), nrow = 1, ncol = 3, top = main_title)
   }
   
   if (return == "PC") {
