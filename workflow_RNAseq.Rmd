@@ -293,16 +293,16 @@ Successful optmimization of dimensional reduction methods t-SNE and UMAP to well
 ``` {r EA3_FinalAnaly sis, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 # PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "pca", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 
 # tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 
 # UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", alorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", alorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
 
 ```
 
@@ -320,8 +320,8 @@ varTable_topVar = vst_varTable[vst_varTable$variance>3,]
 RNAseqCounts_topVar = RNAseqCounts_vst[rownames(varTable_topVar),]
 
 # top 1000 genes by variance > 1
-pca_genes = plotPCA(count_data = RNAseqCounts_topVar, feature_labels = rownames(y), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
-sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
+pca_genes = plotPCA(count_data = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_topVar), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
 
 # screeplot
 par(mfrow = c(1,1))
@@ -337,9 +337,9 @@ kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 6, normalize_comparison = TR
 # t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
 tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), duplicates = FALSE)
 tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 12, duplicates = FALSE)
-tSNE_samples = Rtsne(RNAseqCounts_topVar, dims = 2, perplexity = 12, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+tSNE_genes = Rtsne(RNAseqCounts_topVar, dims = 2, perplexity = 12, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
 # hclustering 
-cophTable_tsne = copheneticEval(count_data = tSNE_samples$Y, feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
+cophTable_tsne = copheneticEval(count_data = tSNE_genes$Y, feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
 cophTable_tsne
 # kmeans
 kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
@@ -348,9 +348,9 @@ kclusterWithinSS(tSNE_samples$Y, cluster_count = 5, normalize_comparison = TRUE)
 # UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
 umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst))
 umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 20)
-umap_samples = umap(RNAseqCounts_topVar, method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
+umap_genes = umap(RNAseqCounts_topVar, method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
 # hclustering 
-cophTable_umap = copheneticEval(count_data = umap_samples$layout, feature_labels = rownames(y), usage = "reduction")
+cophTable_umap = copheneticEval(count_data = umap_genes$layout, feature_labels = rownames(y), usage = "reduction")
 cophTable_umap
 # kmeans
 kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
@@ -358,12 +358,15 @@ kclusterWithinSS(umap_samples$layout, cluster_count = 6, normalize_comparison = 
 
 
 # PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis2(data_object = pca_genes, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "pearson", transpose_data = FALSE, use_dim = 10, return = FALSE)
+clusterAnalysis2(data_object = pca_genes, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, use_dim = 10, return = FALSE)
+
 clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "Pearson", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
 clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
 
 # tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "pearson", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 5, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
 
 # UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
 clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05, return = "none")

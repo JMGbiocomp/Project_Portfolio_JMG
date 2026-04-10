@@ -16,7 +16,7 @@
 hclustering_object = function (count_data = NA, feature_labels = NA, object_type = "hclust", distance_type = "Euclidean", linkage_method = NA, dend_plot = FALSE, usage = "Quality Control") {
   # errors and flags
   
-  if (length(feature_labels) != dim(count_data)[2] & usage != "reduction") {stop("the number of feature labels must equal the number of features (samples)")}
+  
   if (is.na(linkage_method)) {stop("Must choose between the different linkage method choices: 'ward.D', 'ward.D2', 'single', 'complete', 'average', 'mcquitty', 'median' or 'centroid'")}
   if (dend_plot == FALSE) {message("heirarchical clustering not visualized")}
   

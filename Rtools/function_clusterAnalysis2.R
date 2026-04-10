@@ -23,63 +23,50 @@
   # ggplot2
   # gridExtra
 
-clusterAnalysis = function (data_object, feature_labels, cluster_count, dimension_reduction = "pca", cluster_algorithm, algorithm_method, dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 10, dist_min = 0.05, return = "none") {
+clusterAnalysis2 = function (data_object, feature_labels, cluster_count, dimension_reduction = "pca", cluster_algorithm, algorithm_method, dist_method = "euclidean", transpose_data = FALSE, use_dim = 10, return = FALSE) {
   
   if (transpose_data == TRUE) {data_object = t(data_object)}
   features = feature_labels
   
   if (dimension_reduction == "pca") {
-    reduced_data = prcomp(x = data_object, scale = FALSE)
-    hold_data = as.data.frame(reduced_data$x)
-    reduced_data = as.data.frame(reduced_data$x[,1:3])
-    col_names = c("names", "PC1", "PC2", "PC3")
+    hold_data = data_object$x
   } else if (dimension_reduction == "tsne") {
-    reduced_data = Rtsne(data_object, dims = dim_output, perplexity = local_global, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
-    reduced_data = as.data.frame(reduced_data$Y)
-    col_names = c("names", "tSNE1", "tSNE2")
+    hold_data = data_object$Y
   } else if (dimension_reduction == "umap") {
-    reduced_data = umap(data_object, method = "naive", n_neighbors = local_global, n_components = dim_output, min_dist = dist_min, metric = "euclidean")
-    reduced_data = as.data.frame(reduced_data$layout)
-    col_names = c("names", "UMAP1", "UMAP2")
+    hold_data = data_object$layout
   }
-  
-  plot_data = cbind(features, reduced_data)
-  colnames(plot_data) = col_names
-  rownames(plot_data) = rownames(data_object)
-  if (cluster_algorithm == "kmeans") {
-    if (dimension_reduction == "pca") {
-      cluster_object = kmeans(x = hold_data, centers = cluster_count, algorithm = algorithm_method)
-    } else {
-      cluster_object = kmeans(x = reduced_data, centers = cluster_count, algorithm = algorithm_method)
-    }
-    cluster_results = cluster_object$cluster
-  } else if (cluster_algorithm == "hclust") {
-    if (dimension_reduction == "pca") {
-      cluster_object = hclustObject(data_object = hold_data, feature_labels = features, transpose_data = FALSE, dist_method = dist_method, linkage_method = algorithm_method, dend_plot = FALSE, object_return = "hclust")
-    } else {
-      cluster_object = hclustObject(data_object = reduced_data, feature_labels = features, transpose_data = TRUE, dist_method = dist_method, linkage_method = algorithm_method, dend_plot = FALSE, object_return = "hclust")
-    }
+  print("check")
+  if (cluster_algorithm == "hclust") {
+    cluster_object = hclustObject(data_object = hold_data, feature_labels = features, transpose_data = FALSE, dist_method = dist_method, linkage_method = algorithm_method, dend_plot = FALSE, object_return = "hclust")
     cluster_results = cutree(cluster_object, k = cluster_count)
+  } else if (cluster_algorithm == "kmeans") {
+    cluster_object = kmeans(x = hold_data, centers = cluster_count, algorithm = algorithm_method)
+    cluster_results = cluster_object$cluster
   }
-  print(cluster_object)
-  groups = unique(cluster_results) # identify only the unique labels
-  set.seed(100)
-  colors = sample(x = colors(distinct = TRUE), size = length(groups), replace = TRUE) # color code vector to designate feature labels by color
-  point_colors = colors[match(cluster_results, groups)] # generates a color code vector corresponding to each sample's feature
-  plot_data$cluster_results = point_colors
-  set.seed(NULL)
-  if (transpose_data == TRUE) {
-    groups = unique(features) # identify only the unique labels
-    set.seed(1)
-    colors = sample(x = colors(distinct = TRUE), size = length(groups), replace = TRUE) # color code vector to designate feature labels by color
-    feature_colors = colors[match(features, groups)]
-    plot_data$feature_labels = feature_colors
-  } else {
-    groups = features # all features 
-    feature_colors = sample(x = colors(distinct = FALSE), size = length(groups), replace = TRUE) # color code vector to designate feature labels by color
-    plot_data$feature_labels = feature_colors
+  print("check")
+  if (dimension_reduction == "pca") {
+    plot_data = as.data.frame(data_object$x[,1:3])
+    col_names = c("names", "PC1", "PC2", "PC3")
+    plot_data = cbind(feature_labels, plot_data)
+    colnames(plot_data) = col_names
+  } else if (dimension_reduction == "tsne") {
+    plot_data = as.data.frame(data_object$Y)
+    col_names = c("names", "tSNE1", "tSNE2")
+    plot_data = cbind(feature_labels, plot_data)
+    colnames(plot_data) = col_names
+  } else if (dimension_reduction == "umap") {
+    plot_data = as.data.frame(data_object$layout)
+    col_names = c("names", "UMAP1", "UMAP2")
+    plot_data = cbind(feature_labels, plot_data)
+    colnames(plot_data) = col_names
+  } else if (dimension_reduction == "none") {
+    
   }
-  
+  print("check")
+  plot_data$cluster_results = colorCode(cluster_results, color_replace = FALSE)
+  print("check")
+  plot_data$feature_labels = colorCode(features, color_replace = TRUE)
+  print("check")
   
   if (dimension_reduction == "pca") {
     p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
@@ -99,14 +86,11 @@ clusterAnalysis = function (data_object, feature_labels, cluster_count, dimensio
     gridExtra::grid.arrange(grobs = list(p1,p2), nrow = 1, ncol = 2, top = "Clustering of tSNE Reduction")
   }
   
-  if (return == "reduction") {
+  if (return) {
     print("Analysis Complete")
-    return(reduced_data)
-  } else if (return == "cluster") {
+    return(cluster_object)
+  } else {
     print("Analysis Complete")
-    return(cluster_results)
-  } else if (return == "none") {
-    print("Analysis Complete")
-    print("No object was returned from the analysis.")
+    print("Clustering results were not returned.")
   }
 }
