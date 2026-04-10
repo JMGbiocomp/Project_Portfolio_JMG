@@ -20,9 +20,8 @@ umapOptimize = function (data_object, feature_varaible, usage = "explore", neigh
   
   groups = unique(feature_varaible) # identify only the unique labels
   set.seed(100)
-  colors = sample(x = colors(distinct = TRUE), size = length(groups)) # color code vector to designate feature labels by color
+  colors = sample(x = colors(distinct = TRUE), size = length(groups), replace = TRUE) # color code vector to designate feature labels by color
   point_colors = colors[match(feature_varaible, groups)] # generates a color code vector corresponding to each sample's feature
-  print(groups)
   
   for (i in neighbors) {
     u_object = umap(d = data_object, method = "naive", n_neighbors = i)

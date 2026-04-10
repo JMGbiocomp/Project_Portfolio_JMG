@@ -315,38 +315,70 @@ Along with dimensionality reduction, clustering successfully captures the biolog
 ## Code Chunk
 
 ``` {r explore_gene, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+varTable_topVar = vst_varTable[vst_varTable$variance>3,]
 
-pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
+RNAseqCounts_topVar = RNAseqCounts_vst[rownames(varTable_topVar),]
+
+# top 1000 genes by variance > 1
+pca_genes = plotPCA(count_data = RNAseqCounts_topVar, feature_labels = rownames(y), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
 sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
-
-set.seed(3)
-ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", return = FALSE)
 
 # screeplot
 par(mfrow = c(1,1))
-screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
+screeplot(pca_genes, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
 
-cophTable = copheneticEval(count_data = pca_genes$x[1:], feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
-cophTable_tsne
+cophTable_genePCA = copheneticEval(count_data = pca_genes$x[,1:3], feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
+cophTable_genePCA
 
 kclusterOptimize(pca_genes$x[,1:3], cluster_range = 20, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(pca_genes$x[,1:3], cluster_count = , normalize_comparison = TRUE)
+kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 6, normalize_comparison = TRUE)
 
+
+# t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
+tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), duplicates = FALSE)
+tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 12, duplicates = FALSE)
+tSNE_samples = Rtsne(RNAseqCounts_topVar, dims = 2, perplexity = 12, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+# hclustering 
+cophTable_tsne = copheneticEval(count_data = tSNE_samples$Y, feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
+cophTable_tsne
+# kmeans
+kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(tSNE_samples$Y, cluster_count = 5, normalize_comparison = TRUE)
+
+# UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
+umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst))
+umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 20)
+umap_samples = umap(RNAseqCounts_topVar, method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
+# hclustering 
+cophTable_umap = copheneticEval(count_data = umap_samples$layout, feature_labels = rownames(y), usage = "reduction")
+cophTable_umap
+# kmeans
+kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
+kclusterWithinSS(umap_samples$layout, cluster_count = 6, normalize_comparison = TRUE)
+
+
+# PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "Pearson", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
+
+# tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
+
+# UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05, return = "none")
+clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
 
 ```
+
+## Discussion
+
+
+## Code Chunk
 
 ``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # PCA
 
-pca_genes = plotPCA(count_data = RNAseqCounts_vst, feature_labels = rownames(RNAseqCounts_vst), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
-
-sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Contributing Genes", input_type = "pca")
-gena_namesPCA = sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_vst), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
-gena_namesPCA
-
-top_pca_gene = plotPCA(count_data = RNAseqCounts_vst[rownames(vst_varTable)[1:500],], feature_labels = rownames(vst_varTable)[1:500], usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
-top_pca_sample = plotPCA(count_data = RNAseqCounts_vst[rownames(vst_varTable)[1:500],], feature_labels = c(sample_metaData$infection), usage = "sample", plot2D = TRUE, plot3D = FALSE, return = TRUE)
-sAnalyzePCA(pcaData_1 = top_pca_sample , pcaData2 = top_pca_gene, species_labels = rownames(vst_varTable)[1:500], main_title = "Filtered PCA for Top Contributing Genes", input_type = "pca",visualize = TRUE, visual_count = 5, return = "genes")
 
 
 ```
@@ -359,15 +391,6 @@ sAnalyzePCA(pcaData_1 = top_pca_sample , pcaData2 = top_pca_gene, species_labels
 
 ``` {r EA3_, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
-# k-means clustering 
-kclusterOptimize(pca_genes$x[,1:3], cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = FALSE)
-kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 3, normalize_comparison = TRUE)
-
-kmeans_sample = kmeans(x = pca_vst$x[,1:3], centers = 3)
-
-
-# UMAP
 
 ```
 

@@ -10,7 +10,7 @@
 copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculation = c("Euclidean", "Pearson", "Spearman", "Manhattan"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), usage = "Quality Control") {
   # errors and flags
   
-  if (length(feature_labels) != dim(count_data)[2] & usage != "reduction") {stop("the number of feature labels must equal the number of features (samples)")}
+  if (length(feature_labels) != dim(count_data)[1] & usage != "reduction") {stop("the number of feature labels must equal the number of features (samples)")}
   
   linkage.ct = length(linkage_methods) # number of linkage methods
   dist.ct = length(dist_calculation) # number of distance calculation methods
