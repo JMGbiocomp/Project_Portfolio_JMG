@@ -23,10 +23,7 @@
   # ggplot2
   # gridExtra
 
-clusterAnalysis2 = function (data_object, feature_labels, cluster_count, dimension_reduction = "pca", cluster_algorithm, algorithm_method, dist_method = "euclidean", transpose_data = FALSE, use_dim = 10, return = FALSE) {
-  
-  if (transpose_data == TRUE) {data_object = t(data_object)}
-  features = feature_labels
+clusterAnalysis2 = function (data_object, feature_labels, cluster_count, dimension_reduction = "pca", cluster_algorithm, algorithm_method, dist_method = "euclidean", use_dim = 10, return = FALSE) {
   
   if (dimension_reduction == "pca") {
     hold_data = data_object$x
@@ -37,7 +34,7 @@ clusterAnalysis2 = function (data_object, feature_labels, cluster_count, dimensi
   }
   print("check")
   if (cluster_algorithm == "hclust") {
-    cluster_object = hclustObject(data_object = hold_data, feature_labels = features, transpose_data = FALSE, dist_method = dist_method, linkage_method = algorithm_method, dend_plot = FALSE, object_return = "hclust")
+    cluster_object = hclustObject(data_object = hold_data, transpose_data = "species", dist_method = dist_method, linkage_method = algorithm_method, dend_plot = FALSE, object_return = "hclust")
     cluster_results = cutree(cluster_object, k = cluster_count)
   } else if (cluster_algorithm == "kmeans") {
     cluster_object = kmeans(x = hold_data, centers = cluster_count, algorithm = algorithm_method)
@@ -63,25 +60,26 @@ clusterAnalysis2 = function (data_object, feature_labels, cluster_count, dimensi
     
   }
   print("check")
+  # return(cluster_results)
   plot_data$cluster_results = colorCode(cluster_results, color_replace = FALSE)
   print("check")
-  plot_data$feature_labels = colorCode(features, color_replace = TRUE)
+  plot_data$feature_colors = colorCode(features, color_replace = TRUE)
   print("check")
   
   if (dimension_reduction == "pca") {
-    p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+    p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = cluster_results)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     c1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = feature_colors)) + geom_point() + labs(title = "By Feature") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-    p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+    p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = cluster_results)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     c2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = feature_colors)) + geom_point() + labs(title = "By Feature") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-    p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+    p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = cluster_results)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     c3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = feature_colors)) + geom_point() + labs(title = "By Feature") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     gridExtra::grid.arrange(grobs = list(p1,c1,p2,c2,p3,c3), nrow = 3, ncol = 2, top = "Clustering of PCA Principal Components")
   } else if (dimension_reduction == "umap") {
-    p1 = ggplot(data = plot_data, aes(x = UMAP1, y = UMAP2, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+    p1 = ggplot(data = plot_data, aes(x = UMAP1, y = UMAP2, color = cluster_results)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     p2 = ggplot(data = plot_data, aes(x = UMAP1, y = UMAP2, color = feature_labels)) + geom_point() + labs(title = "By Features") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     gridExtra::grid.arrange(grobs = list(p1,p2), nrow = 1, ncol = 2, top = "Clustering of UMAP Reduction")
   } else if (dimension_reduction == "tsne") {
-    p1 = ggplot(data = plot_data, aes(x = tSNE1, y = tSNE2, color = point_colors)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+    p1 = ggplot(data = plot_data, aes(x = tSNE1, y = tSNE2, color = cluster_results)) + geom_point() + labs(title = "By Clustering") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     p2 = ggplot(data = plot_data, aes(x = tSNE1, y = tSNE2, color = feature_labels)) + geom_point() + labs(title = "By Features") + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
     gridExtra::grid.arrange(grobs = list(p1,p2), nrow = 1, ncol = 2, top = "Clustering of tSNE Reduction")
   }
