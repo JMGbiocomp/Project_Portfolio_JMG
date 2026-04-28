@@ -14,25 +14,25 @@
   #
 # dependencies:
 
-hclustObject = function (data_object, feature_labels, transpose_data = "features", dist_method = "euclidean", linkage_method, dend_plot = FALSE, object_return = "hclust", verbose = FALSE) {
+hclustObject = function (data_object, feature_labels, transpose_data = "features", dist_method = "euclidean", linkage_method, dend_plot = FALSE, object_return = "hclust", verbose = FALSE, reduced = FALSE) {
   
   if (dist_method == "manhattan") {
-    if (transpose_data == "features") {
+    if (transpose_data == "features" & reduced != TRUE) {
       data_object = t(data_object)
     }
     h_object = hclust(d = dist(data_object, method = dist_method), method = linkage_method)
   } else if (dist_method == "pearson") {
-    if (transpose_data == "species") {
+    if (transpose_data == "species" | reduced == TRUE) {
       data_object = t(data_object)
     }
     h_object = hclust(d = as.dist(1-stats::cor(data_object)), method = linkage_method)
   } else if (dist_method == "spearman") {
-    if (transpose_data == "species") {
+    if (transpose_data == "species" | reduced == TRUE) {
       data_object = t(data_object)
     }
     h_object = hclust(d = as.dist(1-stats::cor(data_object, method = dist_method)), method = linkage_method)
   } else if (dist_method == "euclidean") {
-    if (transpose_data == "features") {
+    if (transpose_data == "features" & reduced != TRUE) {
       data_object = t(data_object)
     }
     h_object = hclust(d = dist(data_object, method = dist_method), method = linkage_method)
@@ -48,12 +48,12 @@ hclustObject = function (data_object, feature_labels, transpose_data = "features
     dend = as.dendrogram(h_object)
     labels(dend) = feature_labels # label dendrogram leaves
     if (verbose) {
-      print("dendrogram compete")
+      message("dendrogram compete")
     }
     return(dend)
   } else if (object_return == "hclust") {
     if (verbose) {
-      print("hclust object complete")
+      message("hclust object complete")
     }
     return(h_object)
   }

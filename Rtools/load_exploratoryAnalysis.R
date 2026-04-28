@@ -1,7 +1,7 @@
 ## === Exploratory Analysis Functions === ##
 # PackageDependency() uses RCran and Bioconductor repositories to find and install packages 
 # Predetermined exploratory analysis packages for R are checked and installed 
-# Includes heirarchical clustering, PCA, and 
+# Includes hierarchical clustering, PCA, and 
 #
 
 package_list = c("dendextend", "corrplot", "rgl", "PoiClaClu","ggrepel", "ggpubr","umap","Rtsne")
@@ -28,5 +28,6 @@ source("Rtools/function_sAnalyzePCA.R")
 source("Rtools/function_kclusterOptimize.R")
 source("Rtools/function_kclusterWithinSS.R")
 source("Rtools/function_clusterAnalysis.R")
-source("Rtools/function_umapOptimize.R")
-source("Rtools/function_tsneOptimize.R")
+source("Rtools/function_optimizeUMAP.R")
+source("Rtools/function_optimizeTSNE.R")
+source("Rtools/function_analysisPCA.R")

@@ -11,7 +11,7 @@
 # dependencies:
   # stats
 
-copheneticEval2 = function (data_object, transpose_data = "features", dCalc = c("euclidean", "pearson", "spearman", "manhattan"), linkage = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")) {
+copheneticEval2 = function (data_object, transpose_data = "features", data_reduced = FALSE, dCalc = c("euclidean", "pearson", "spearman", "manhattan"), linkage = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), verbose = FALSE) {
   # error and message flags
   if (transpose_data == "features") {
     message("Calculating cophenetic correlation coefficient by features")
@@ -26,22 +26,24 @@ copheneticEval2 = function (data_object, transpose_data = "features", dCalc = c(
   
   # flow control for combinatorial analysis pf cophenetic correlation coefficient
   for (d in dCalc) {
+    if (verbose) {message(paste("Distance calculation method:", d))}
     for (l in linkage) {
+      if (verbose) {message(paste("Linkage method:", l))}
       # perform hierarchical clustering by distance calculation and linkage method
-      hclust_object = hclustObject(data_object = data_object, transpose_data = transpose_data, dist_method = d, linkage_method = l, verbose = TRUE)
+      hclust_object = hclustObject(data_object = data_object, transpose_data = transpose_data, dist_method = d, linkage_method = l, verbose = verbose, reduced = data_reduced)
       # flow control for generating distance matrix needed for correlation assessment 
       if (d == "euclidean" || d == "manhattan") {
-        if (transpose_data == "features") {
+        if (transpose_data == "features" & data_reduced != TRUE) {
           data_object = t(data_object)
         }
         d_Matrix = dist(data_object, method = d)
       } else if (d == "pearson" || d == "spearman") {
-        if (transpose_data == "species") {
+        if (transpose_data == "species" || data_reduced == TRUE) {
           data_object = t(data_object)
         }
         d_Matrix = as.dist(1-stats::cor(data_object, method = d))
       }
-      output_data[d,l] = cor(d_Matrix, cophenetic(hclust_object))
+      output_data[d,l] = stats::cor(d_Matrix, cophenetic(hclust_object))
     }
   }
   return(output_data)

@@ -184,7 +184,9 @@ rm(sample_sampling)
 
 Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM basically has two distinct stabilized groups, arguably three with a transition group between the two.  VST osciliation trend may suggest better stabilization of variance across the range of means between species.  
 
-# Exploratory Analysis by Sample
+# Exploratory Analysis: Dimensionality Reduction
+
+Dimensionality reduction (DR) methods are powerful tools to reduce data with high dimensions to a smaller number of dimensions, possibly just two, while preserving the global and local relationships between data points in the original data.  Within this reduced dimensional space much of the noise can be removed, global anomalies and local outliers can be identified and features of interest are capable of being analyzed visually, which is at the very least extremely difficult if not impossible within the space of the original data.  To successfully do this, it is often required to perform an analysis of the DR and/or undergo hyper parameter tuning to optimize the DR.  The most common DR methods are PCA (Principal Component Analysis), t-SNE (t-Distributed Stochastic Neighbor Embedding), UMAP (Uniform Manifold Approximation and Projection) and MDS (multidimensional Scaling).  PCA is a linear approach the identifies dimensions in order of greatest variance (Principal Components) - i.e. each subsequent dimension (axes) houses less variance between the data points than the last.  Both t-SNE and UMAP are nonlinear DR methods that allow the user to define the number of dimensions the data will be reduced to and excel at capturing local and gloabal structures within the data.  t-SNE is known better for capturing local structure and therefore excellent for scRNAseq data analysis while UMAP can be preferred over t-SNE since it is computationally less demanding (faster) and considered to better balance capture of global and local structure. Wihtin this context, PCA would be considered a strong DR technique to evaluate global structure.  MDS focuses on preserving pairwise distances between data points - i.e. it maps the data into reduced dimensions in which the more similar data is the closer they are to each other within this space.  This is uniquely different from t-SNE and UMAP, which the distances of data within these reduced dimensional space is irrelevant.  This difference actually makes MDS a strong DR method for pre-processing prior to K-means or DBSCAN clustering algorithms as well as outlier detection.  
 
 Performing exploratory analysis by sample is valuable to investigate how well the experimental treatments and/or sample features captures the structure of the expression data.  It is a quality control method as well as validation technique that the assume biological relevance of the experiment is reflected within the data.  The data can undergo cluster analysis/clustering without any dimensional redcution or post-reduction, which helps eliminate noise and expression-level bias prior to clustering.  Ideally, the data feature in question, which represents the experimental design, clusters well and reinforces the pursuit of downstream analysis to find differentiated expressed genes and potential biomarkers. 
 
@@ -247,6 +249,10 @@ table(sample_metaData$infection) # number of samples by infection type
 optimizeTree(hc_object = pcaHC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # reports which samples by feature are clustered within each cluster
 plot(color_branches(pcaHC_vst, k = 3)) # plot optimal clustering number found from analysis
 
+## A more comprehensive PCA of the data set
+
+analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, top_result = 10, PC_error = 10)
+
 # clear system memory
 set.seed(NULL)
 rm()
@@ -261,23 +267,29 @@ PCA was performed to reduce the dimension of the count data set.  Covariance cap
 ``` {r EA3_tSNE_UMAP, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 # t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
-tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
-tsneOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 28)
-tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 28, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "perplexity")
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "iterations", neighbors = 50)
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "check", neighbors = 75, iterations = 6*50)
+
+tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 75, max_iter = 6*50, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
 # hclustering 
 cophTable_tsne = copheneticEval(data_object = tSNE_samples$Y, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
-cophTable_tsne = copheneticEval2(data_object = tSNE_samples$Y, transpose_data = "features")
+cophTable_tsne = copheneticEval2(data_object = tSNE_samples$Y, transpose_data = "features", data_reduced = TRUE)
 cophTable_tsne
 # kmeans
 kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
 kclusterWithinSS(tSNE_samples$Y, cluster_count = 3, normalize_comparison = TRUE)
 
 # UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
-umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection))
-umapOptimize(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = 20)
-umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "neighbors")
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.25, iterations = 300, display_legend = TRUE)
+
+umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 50, n_components = 2, min_dist = 0.25, n_epoch = 300, metric = "euclidean")
 # hclustering 
 cophTable_umap = copheneticEval(count_data = umap_samples$layout, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
+cophTable_umap = copheneticEval2(data_object = umap_samples$layout, transpose_data = "features", data_reduced = TRUE)
 cophTable_umap
 # kmeans
 kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
@@ -297,19 +309,61 @@ Successful optmimization of dimensional reduction methods t-SNE and UMAP to well
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 
+clusterAnalysis3(data_object = pca_vst, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 6, reduction = "pca", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
+clusterAnalysis3(data_object = pca_vst, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "pca", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
+
 # tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
 
+clusterAnalysis3(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 3, reduction = "tsne", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
+clusterAnalysis3(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "tsne", dim_include = 10, dist_calc = "euclidean", linkage = "ward.D", k_algorithm = "Hartigan-Wong")
+
 # UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
 clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
+
+clusterAnalysis3(data_object = umap_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 3, reduction = "umap", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
+clusterAnalysis3(data_object = umap_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "umap", dim_include = 10, dist_calc = "euclidean", linkage = "ward.D", k_algorithm = "Hartigan-Wong")
 
 ```
 
 ## Discussion
 
 Along with dimensionality reduction, clustering successfully captures the biological feature (macrophage infection response).  Reduction through PCA, hierarchical clustering was unable to match cluster number with infection type as several outliers distort the clustering.  At 6 perceived clusters, the bulk of the separation was finally captured via clustering.  Reduction through UMAP provides tighter clusters while tSNE generates clusters with a significantly wider spread. However, both algorithms still provide adequate inter-cluster spread. Each of the techniques was successful in matching the cluster number with infection type.  Based on these results infection type is captured well by the gene expression differences between samples.  Therefore, exploratory analysis by species (genes) will yield the genomic contribution to the phenotypic differences of macrophages by infection type.  
+
+# Differential Expression Analysis
+
+## Code Chunk
+
+``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+dds = DESeq(deSEQ)
+res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
+DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
+colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_CvsS) = rownames(res_CvsS)
+DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
+DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.1,]
+
+res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 0.5, alpha = 0.01)
+DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
+colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_CvsL) = rownames(res_CvsL)
+DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
+DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.1,]
+
+res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 0.5, alpha = 0.01)
+DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
+colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_LvsS) = rownames(res_LvsS)
+DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
+DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.1,]
+
+```
+
+## Discussion 
+
 
 # Exploratory Analysis by Genes
 
@@ -330,6 +384,8 @@ screeplot(pca_genes, npcs = 10, type = "barplot", main = "Total Variance Within 
 
 cophTable_genePCA = copheneticEval(data_object = pca_genes$x[,1:3], feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
 cophTable_genePCA
+cophTable_genePCA = copheneticEval2(data_object = pca_genes$x[,1:3], transpose_data = "species", data_reduced = TRUE)
+cophTable_genePCA
 
 kclusterOptimize(pca_genes$x[,1:3], cluster_range = 20, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
 kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 6, normalize_comparison = TRUE)
@@ -341,7 +397,8 @@ tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAs
 tSNE_genes = Rtsne(RNAseqCounts_topVar, dims = 2, perplexity = 12, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
 # hclustering 
 cophTable_tsne = copheneticEval(count_data = tSNE_genes$Y, feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
-cophTable_tsne = copheneticEval2(data_object = tSNE_genes$Y, transpose_data = "species")
+cophTable_tsne
+cophTable_tsne = copheneticEval2(data_object = tSNE_genes$Y, transpose_data = "species", data_reduced = TRUE, verbose = TRUE)
 cophTable_tsne
 # kmeans
 kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
@@ -353,6 +410,8 @@ umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAs
 umap_genes = umap(RNAseqCounts_topVar, method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
 # hclustering 
 cophTable_umap = copheneticEval(count_data = umap_genes$layout, feature_labels = rownames(y), usage = "reduction")
+cophTable_umap
+cophTable_umap = copheneticEval2(data_object = umap_genes$layout, transpose_data = "species", data_reduced = TRUE)
 cophTable_umap
 # kmeans
 kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
