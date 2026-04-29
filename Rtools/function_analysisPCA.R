@@ -9,7 +9,7 @@
   # plot_data = logical value to determine if PC score and loading plots are generated 
   # data_return = logical value to determines if the pca object is returned
   # load_threshold = numeric value between 0 and 1 as a cut off for magnitudinal direction of pca loadings 
-# Dependencies:
+# Dependencies:  
   # stats, ggplot2, gridExtras
 
 analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, top_result = 10, PC_error = 10) {
@@ -65,12 +65,11 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     label_criteria = which(average_error > mean(average_error)+sd(average_error)*2)
     cutoff = RE_data[RE_data$RMSE > mean(RE_data$RMSE) + 2*sd(RE_data$RMSE),]
     
-    stats::screeplot(pca_object, type = "lines", npcs = PC_error, main = "Weight of Top PC Contribution to Variance", pch = 16)
-    title(xlab = "Principal Components", ylab = "Captured Variance")
-    plot(x = RE_data$Index, y = RE_data$RMSE, main = "Reconstruction Error by Feature", log = "y", las = 2, xaxt = "n", ylab = "Root Mean Squared Error (RMSE) ", ylim = c(mean(average_error) - sd(average_error)*2, mean(average_error) + sd(average_error)*8), col = "black", cex = 0.5) 
+    stats::screeplot(pca_object, type = "lines", npcs = PC_error, main = "Contribution to Variance by Principal Components", pch = 16)
+    title(xlab = "Principal Components")
+    plot(x = RE_data$Index, y = RE_data$RMSE, main = "Detection of Global Anomalies", log = "y", las = 2, xaxt = "n", ylab = "Root Mean Squared Error (RMSE) ", xlab = "Index", ylim = c(mean(average_error) - sd(average_error)*2, mean(average_error) + sd(average_error)*8), col = "black", cex = 0.5) 
     axis(side = 1, at = label_criteria, labels = colnames(data_object)[label_criteria], cex.axis = 0.5)
     text(x = cutoff$Index, y = cutoff$RMSE, labels = cutoff$Index, pos = 2, cex = 0.5)
-    title(ylab = "Root Mean Squared Error (RMSE)")
     abline(h = mean(average_error), col ="green", lty = "dashed")
     abline(h = mean(average_error) + sd(average_error)*2, col = "blue", lty = "dashed")
     abline(h = mean(average_error) + sd(average_error)*6, col = "red", lty = "dashed")
