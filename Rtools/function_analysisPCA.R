@@ -65,10 +65,14 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     stats::screeplot(pca_object, type = "lines", npcs = PC_error, main = "Weight of Top PC Contribution to Variance", pch = 16)
     title(xlab = "Principal Components", ylab = "Captured Variance")
     barplot(average_error, main = "Reconstruction Error by Feature", log = "y", las = 2, xaxt = "n", ylim = c(mean(average_error) - sd(average_error)*6, mean(average_error) + sd(average_error)*6), col = "steelblue") 
-    axis(side = 1, at = label_criteria, labels = colnames(data_object)[label_criteria])
+    axis(side = 1, at = label_criteria, labels = colnames(data_object)[label_criteria], cex = 0.5)
     title(ylab = "Root Mean Squared Error (RMSE)")
-    abline(h = mean(average_error), col ="red")
-    abline(h = mean(average_error) + sd(average_error)*3, col = "blue", lty = 2)
+    abline(h = mean(average_error), col ="green", lty = "dashed")
+    abline(h = mean(average_error) + sd(average_error)*2, col = "blue", lty = "dashed")
+    abline(h = mean(average_error) + sd(average_error)*6, col = "red", lty = "dashed")
+    
+    # Local outlier detection using local outlier factor (LOF)
+    analysisLOF(pca_object$x, plot_return = TRUE)
     
     # Local outlier detection (LOD) using mahalanobis distance 
     LOD1 = analysisLOD(data_object = pca_object$x[,1:2], feature_labels = feature_labels, data_type = "pca", d_names = c("PC1", "PC2"))

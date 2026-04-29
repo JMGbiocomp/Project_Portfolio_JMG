@@ -28,6 +28,7 @@ analysisLOF = function (data_object, k_range = c(10,20), plot_return = FALSE) {
     abline(h = mean(lof_average) + 6*sd(lof_average), col = "red", lty = "dashed")
     cutoff = plot_data[plot_data$LOF > mean(lof_average)+2*sd(lof_average),]
     text(cutoff$Index, cutoff$LOF, labels = cutoff$Index, pos = 2, cex = 0.5)
+  } else {
+    return(lof_average)
   }
-  return(lof_average)
 }
