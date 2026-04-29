@@ -36,9 +36,9 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     s3 = ggplot(data = pca_scores, aes(x = PC2, y = PC3, color = factor(feature))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
     
     # loading plots
-    l1 = ggplot(data = pca_loading, aes(x = PC1, y = PC2)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC2) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC2) > load_threshold), aes(label = species, vjust = -1)) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-    l2 = ggplot(data = pca_loading, aes(x = PC1, y = PC3)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC3) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC3) > load_threshold), aes(label = species, vjust = -1))  + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-    l3 = ggplot(data = pca_loading, aes(x = PC2, y = PC3)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC2) > load_threshold | abs(PC3) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC2) > load_threshold | abs(PC3) > load_threshold), aes(label = species, vjust = -1))  + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    l1 = ggplot(data = pca_loading, aes(x = PC1, y = PC2)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC2) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC2) > load_threshold), aes(label = species, vjust = -1), size = 2) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    l2 = ggplot(data = pca_loading, aes(x = PC1, y = PC3)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC3) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC1) > load_threshold | abs(PC3) > load_threshold), aes(label = species, vjust = -1), size = 2)  + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    l3 = ggplot(data = pca_loading, aes(x = PC2, y = PC3)) + geom_point(color = "lightgrey") + geom_point(data = subset(pca_loading, abs(PC2) > load_threshold | abs(PC3) > load_threshold), color = "red") + geom_text(data = subset(pca_loading, abs(PC2) > load_threshold | abs(PC3) > load_threshold), aes(label = species, vjust = -1), size = 2)  + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
     
     # flow control to manage data centering and scaling for analyzing global data structure 
     if (center_data == FALSE) {
@@ -60,18 +60,22 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     reconstruct_data = t(t(hold_pca$x[, 1:PC_error] %*% t(hold_pca$rotation[, 1:PC_error])) * hold_pca$scale + hold_pca$center)
     errors = (hold_data - reconstruct_data)^2
     average_error = c(rowMeans(errors))
-    label_criteria = which(average_error > mean(average_error)+sd(average_error)*3)
+    RE_data = as.data.frame(cbind(c(1:length(average_error)), average_error))
+    colnames(RE_data) = c("Index","RMSE")
+    label_criteria = which(average_error > mean(average_error)+sd(average_error)*2)
+    cutoff = RE_data[RE_data$RMSE > mean(RE_data$RMSE) + 2*sd(RE_data$RMSE),]
     
     stats::screeplot(pca_object, type = "lines", npcs = PC_error, main = "Weight of Top PC Contribution to Variance", pch = 16)
     title(xlab = "Principal Components", ylab = "Captured Variance")
-    barplot(average_error, main = "Reconstruction Error by Feature", log = "y", las = 2, xaxt = "n", ylim = c(mean(average_error) - sd(average_error)*6, mean(average_error) + sd(average_error)*6), col = "steelblue") 
-    axis(side = 1, at = label_criteria, labels = colnames(data_object)[label_criteria], cex = 0.5)
+    plot(x = RE_data$Index, y = RE_data$RMSE, main = "Reconstruction Error by Feature", log = "y", las = 2, xaxt = "n", ylab = "Root Mean Squared Error (RMSE) ", ylim = c(mean(average_error) - sd(average_error)*2, mean(average_error) + sd(average_error)*8), col = "black", cex = 0.5) 
+    axis(side = 1, at = label_criteria, labels = colnames(data_object)[label_criteria], cex.axis = 0.5)
+    text(x = cutoff$Index, y = cutoff$RMSE, labels = cutoff$Index, pos = 2, cex = 0.5)
     title(ylab = "Root Mean Squared Error (RMSE)")
     abline(h = mean(average_error), col ="green", lty = "dashed")
     abline(h = mean(average_error) + sd(average_error)*2, col = "blue", lty = "dashed")
     abline(h = mean(average_error) + sd(average_error)*6, col = "red", lty = "dashed")
     
-    # Local outlier detection using local outlier factor (LOF)
+    # Local outlier detection (LOD) using local outlier factor (LOF)
     analysisLOF(pca_object$x, plot_return = TRUE)
     
     # Local outlier detection (LOD) using mahalanobis distance 
@@ -79,9 +83,9 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     LOD2 = analysisLOD(data_object = pca_object$x[,c(1,2)], feature_labels = feature_labels, data_type = "pca", d_names = c("PC1", "PC3"))
     LOD3 = analysisLOD(data_object = pca_object$x[,2:3], feature_labels = feature_labels, data_type = "pca", d_names = c("PC2", "PC3"))
     
-    p1 = ggplot(data = LOD1, aes(x = PC1, y = PC2, color = factor(feature))) + geom_point(size = distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-    p2 = ggplot(data = LOD2, aes(x = PC1, y = PC3, color = factor(feature))) + geom_point(size = distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-    p3 = ggplot(data = LOD3, aes(x = PC2, y = PC3, color = factor(feature))) + geom_point(size = distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    p1 = ggplot(data = LOD1, aes(x = PC1, y = PC2, color = factor(feature))) + geom_point(size = LOD1$distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    p2 = ggplot(data = LOD2, aes(x = PC1, y = PC3, color = factor(feature))) + geom_point(size = LOD2$distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+    p3 = ggplot(data = LOD3, aes(x = PC2, y = PC3, color = factor(feature))) + geom_point(size = LOD3$distance) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
     
     gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Local Outlier Detection")
     gridExtra::grid.arrange(grobs = list(s1,s2,s3,l1,l2,l3), nrow = 2, ncol = 3, main = "PCA Scores and Loadings")

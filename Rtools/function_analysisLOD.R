@@ -21,7 +21,7 @@ analysisLOD = function (data_object, feature_labels, data_type, d_names) {
   }
   hold_data$feature = c(feature_labels)
   hold_data$code = colorCode(feature_labels, color_replace = FALSE)
-  hold$data$sample = rownames(hold_data)
+  hold_data$sample = rownames(hold_data)
   hold_data$distance = c(0)
   groups = unique(feature_labels)
   
