@@ -10,31 +10,37 @@
 # dependencies:
   # stats
 
-analysisLOD = function (data_object, feature_labels, data_type, d_names) {
+analysisLOD = function (data_object, feature_labels, sd_count = 3) {
+  par(mfrow = c(1,3))
   hold_data = as.data.frame(data_object)
-  if (data_type == "pca") {
-    colnames(hold_data) = d_names
-  } else if (data_type == "tsne") {
-    colnames(hold_data) = c("tSNE1","tSNE2")
-  } else if (data_type == "umap") {
-    colnames(hold_data) = c("UMAP1", "UMAP2")
-  }
-  hold_data$feature = c(feature_labels)
-  hold_data$code = colorCode(feature_labels, color_replace = FALSE)
+  hold_data$features = feature_labels
   hold_data$sample = rownames(hold_data)
+  hold_data$Index = 1:dim(hold_data)[1]
   hold_data$distance = c(0)
   groups = unique(feature_labels)
   
+  index_outliers = c()
   for (i in 1:length(groups)) {
     feature_data = hold_data[hold_data$feature == groups[i],]
-    feature_data$distance = mahalanobis(x = feature_data[,1:2], colMeans(feature_data[,1:2]), cov = cov(feature_data[,1:2]))
+    feature_data$distance = mahalanobis(x = feature_data[,1:2], colMeans(feature_data[,1:2]), cov = cov(feature_data[,1:2])) 
+    target_data = subset(feature_data, feature_data$distance > mean(feature_data$distance) + sd_count*sd(feature_data$distance))
+    index_outliers = c(index_outliers, target_data$Index)
+    label_criteria = which(feature_data$distance > mean(feature_data$distance)+2*sd(feature_data$distance))
+    
+    plot(x = feature_data$Index, y = feature_data$distance, main = paste("Detection of Local Outliers (LOD):",groups[i] ), ylim = c(0,mean(feature_data$distance) + sd(feature_data$distance)*10), ylab = "Mahalanobis Distance", xlab = "Index", col = "black", cex = 0.8) 
+    text(x = target_data$Index, y = target_data$distance, labels = label_criteria, pos = 3, cex = 0.8)
+    abline(h = median(feature_data$distance), col ="green", lty = "dashed")
+    abline(h = mean(feature_data$distance) + sd(feature_data$distance)*2, col = "blue", lty = "dashed")
+    abline(h = mean(feature_data$distance) + sd(feature_data$distance)*6, col = "red", lty = "dashed")
+    
     index = 1
     for (r in 1:dim(hold_data)[1]) {
-      if (hold_data[r,"feature"] == groups[i]) {
+      if (hold_data[r,"features"] == groups[i]) {
         hold_data[r, "distance"] = feature_data[index,"distance"]
         index = index + 1
       } 
     }
   }
-  return(hold_data)
+  par(mfrow = c(1,1))
+  return(index_outliers)
 }

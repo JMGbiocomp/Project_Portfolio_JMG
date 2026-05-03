@@ -76,6 +76,9 @@ RNAseqCounts <- RNAseqCounts[keep,]
 # TPM normalization 
 RNAseqCounts_TPM = normTPM(RNAseqCounts, gene_metaData, "Length")
 
+# define default graphical parameters
+old_par = par(no.readonly = TRUE)
+
 par(mfrow = c(2,2))
 # data set too large to render as boxplot so sample indexes are sampled to show goodness of fit
 sample_sampling = sample(x = 1:503, size = 100) # first smapling
@@ -186,55 +189,81 @@ Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM
 
 # Exploratory Analysis: Dimensionality Reduction
 
-Dimensionality reduction (DR) methods are powerful tools to reduce data with high dimensions to a smaller number of dimensions, possibly just two, while preserving the global and local relationships between data points in the original data.  Within this reduced dimensional space much of the noise can be removed, global anomalies and local outliers can be identified and features of interest are capable of being analyzed visually, which is at the very least extremely difficult if not impossible within the space of the original data.  To successfully do this, it is often required to perform an analysis of the DR and/or undergo hyper parameter tuning to optimize the DR.  The most common DR methods are PCA (Principal Component Analysis), t-SNE (t-Distributed Stochastic Neighbor Embedding), UMAP (Uniform Manifold Approximation and Projection) and MDS (multidimensional Scaling).  PCA is a linear approach the identifies dimensions in order of greatest variance (Principal Components) - i.e. each subsequent dimension (axes) houses less variance between the data points than the last.  Both t-SNE and UMAP are nonlinear DR methods that allow the user to define the number of dimensions the data will be reduced to and excel at capturing local and gloabal structures within the data.  t-SNE is known better for capturing local structure and therefore excellent for scRNAseq data analysis while UMAP can be preferred over t-SNE since it is computationally less demanding (faster) and considered to better balance capture of global and local structure. Wihtin this context, PCA would be considered a strong DR technique to evaluate global structure.  MDS focuses on preserving pairwise distances between data points - i.e. it maps the data into reduced dimensions in which the more similar data is the closer they are to each other within this space.  This is uniquely different from t-SNE and UMAP, which the distances of data within these reduced dimensional space is irrelevant.  This difference actually makes MDS a strong DR method for pre-processing prior to K-means or DBSCAN clustering algorithms as well as outlier detection.  
+Dimensionality reduction (DR) methods are powerful tools to reduce data with high dimensions to a smaller number of dimensions, possibly just two, while preserving the global and local relationships between data points in the original data.  Within this reduced dimensional space much of the noise can be removed, global anomalies and local outliers can be identified and features of interest are capable of being analyzed visually, which is at the very least extremely difficult if not impossible within the space of the original data.  The former is crucial for finalizing data QC while the latter is a powerful tool to both support the bioligcal quyestion being asked and facilitate the generation of targeted, testable hypotheses.  To successfully reach these goals, it is often required to perform an analysis of the DR and/or undergo hyper parameter tuning to optimize the DR.  The most common DR methods are PCA (Principal Component Analysis), t-SNE (t-Distributed Stochastic Neighbor Embedding), UMAP (Uniform Manifold Approximation and Projection), and MDS (multidimensional Scaling).  PCA is a linear approach that identifies dimensions in order of greatest variance (Principal Components) - i.e. each subsequent dimension (axes) houses less variance between the data points than the last. Both t-SNE and UMAP are nonlinear DR methods that allow the user to define the number of dimensions the data will be reduced to and excel at capturing local and global structures within the data.  t-SNE is known better for capturing local structure and therefore excellent for scRNAseq data analysis while UMAP can be preferred over t-SNE since it is computationally less demanding (faster) and considered to better balance capture of global and local structure. Within this context, PCA would be considered a strong DR technique to evaluate global structure.  MDS focuses on preserving pairwise distances between data points - i.e. it maps the data into reduced dimensions in which the more similar data is the closer they are to each other within this space.  This is uniquely different from t-SNE and UMAP, which the distances of data within these reduced dimensional space is not as strongly connected to similarity.  This difference makes MDS a strong DR method for pre-processing prior to K-means or DBSCAN clustering algorithms as well as outlier detection. Following DR, the data in the reduced dimensional space can be applied to unsupervised learning approaches - i.e. clustering - in order to finish the data quality control process and investigate the biology of interest as stated above.  
 
-Performing exploratory analysis by sample is valuable to investigate how well the experimental treatments and/or sample features captures the structure of the expression data.  It is a quality control method as well as validation technique that the assume biological relevance of the experiment is reflected within the data.  The data can undergo cluster analysis/clustering without any dimensional redcution or post-reduction, which helps eliminate noise and expression-level bias prior to clustering.  Ideally, the data feature in question, which represents the experimental design, clusters well and reinforces the pursuit of downstream analysis to find differentiated expressed genes and potential biomarkers. 
+Before the various DR tools and unsupervised learning methods are explored, an example of applying unsupervised learning to normalized and transformed data without DR will help highlight the advantages of DR thereafter.  To do this, hierarchical clustering will be applied to the data set and observe how well the feature structure is captured by the approach as a baseline for comparison.  
 
-## Code Chunk
+##  EA1 Code Chunk
 
-``` {r EA1_HC, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-# load EA functions
+``` {r EA1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# load functions (tools) for exploratory analysis
 source("Rtools/load_exploratoryAnalysis.R")
+# Hierarchical clustering of the normalized and transformed data set
+# Cophenetic correlation coefficient to evaluate gloabl accuracy of hclust object structure for combinations of distance calculations and linkage methods
+# Limits of cophenetic correlation coefficients can be mitigated by correlation plots between them
 
-# == Hierarchical Clustering by Sample == #
-# bottom-up HC is done by sample to explore how well the biological context groups the samples, distance calculation and linkage is crucial 
-# cophenetic distance calculations to optimize HC
-cophTable = copheneticEval(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)))
+cophTable = analysisCophenetic(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection)) # combinatorial evaluation of cophenetic correlation coefficients
 cophTable
-max(cophTable)
-
-# visualize correlation between linkage methods 
-print("Linkage Methods:")
-print(c("1.ward.D", "2.ward.D2", "3.single", "4.complete", "5.average", "6.mcquitty", "7.median", "8.centroid"))
-par(mfrow = c(1,1))
-linkageCorrelation(count_data=RNAseqCounts_vst,feature_labels=c(t(sample_metaData$infection)),dist_calculation="Euclidean", plot_title = "Euclidean Distance_VST Normalization Counts")
-
-# visualize and analyze optimized hierarchical clustering 
-HC_vst = hclustering_object(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "Quality Control")
-optimizeTree(hc_object = HC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection))
-plot(color_branches(HC_vst, k = 8))
+analysisHclustCor(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection)) # correlations between these different combinations
+dend_vst = objectHCLUST(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), return_object = "dend", dend_plot = TRUE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_vst, leaf_count = 8, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_vst, k = 6)) # view dendrogram with the optimal number of leaves to capture the biology
 
 # clear system memory 
-# rm(cophTable, HC_vst)
+# rm(cophTable, dend_vst)
 ```
 
-## Discussion
+## EA1 Discussion
 
-Hierarchical clustering was optimized using the cophenetic correlation coefficient and reinforced by pie correlation plot between the different linkage methods for the best distance calculation, euclidean distance. The linkage method "average" was optimal for maximizing the cophenetic correlation coefficient.  To effectively cluster samples by treatment with ~ 98% true postives, 6 clusters was optimal.  Because there are only 3 identified treatment groups, either more relevant (and unintended) biological variation exists within the data or enough noise/expression bias is present to generate significant outliers.  To reveal the root of the observation, dimensional reduction of the data set can be performed to eliminate noise and expression bias between species.  If this approach proves fruitful, it can be safe to conclude that the biological feature in question is robust enough for differential analysis by sample and important species are present driving these differences, which can serve as potential biomarkers for macrophage infection response.  
+Because hierarhcical clustering requires data to be converted into a distance matrix and will perform bottom-up grouping to generate the clusters (define the relationship between data points), it is wise to carefully choose which distance calculation and linkage method are optimal for evaluating the data.  Beside considering what type of question will be asked, a valuable measure to evaluate how well the hierarchical structure represents the data is the cophenetic correlation coefficient.  However, as a single metric masks the nuances of the structure in relationship the the data - i.e. a similar correlation values between two different parameter settings does not reflect a similar structure.  To mitigate this short coming, the correlation between these structures was evaluated.  Linkage methods can be rationally chosen but require validation by looking at the dendrogram.  These tools help reduce the amount of structures needed to be investigated and provide a quantitative means of assessment.  Reviewing the dendrogram after the most appropriate parameters were chosen there seems to be three major groups with 2-4 isolated groups.  To evaluate the height at which the tree needs to be cut to capture most of the biology, an iterative function evaluates how well the leaves separate into the different groups defined by the biology of interest over a range of leaf counts.  Reviewing the results, the grouping of the samples to biological feature begins at leaf count 6 and does not improve with increased leaf counts.  This leaf count is validated with another visualization of the dendrogram colored by leaf.  Despite the success of accurately separating a large majoprity of the samples, the cluster count (6) was double that of the group count (3).  Hypothetically, if the results were worse the information would not provide sufficient confidence that the structure within the data is relevant to the biology of interest.  SHoudl these isolated groups/samples be considered outliers? Erros in the experiment? This is where dimnensionality reduction comes in handy.  The goal is to help remove some of the unwanted noise in the data, reinforce the presence of any global/local outliers, and hopefully reveal a stronger relationship between the data structure and the biology.  
 
-## Code Chunk
+Now, lets look at several different DR tools for the following DR techniques: PCA, tSNE, UMAP and MDS.  
 
-``` {r EA2_PCA, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+## EA2 Code Chunk
+
+``` {r EA2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# reset graphical parameters 
+par(old_par)
+
 # PCA
-#plot()
-pca_vst = plotPCA (count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), plot2D = TRUE, plot3D = FALSE, usage = "sample", return = TRUE)
-#ggplot
-set.seed(3)
-ggplotPCA(count_data = RNAseqCounts_vst, feature_labels = c(t(sample_metaData$infection)), usage = "sample", return = FALSE)
+pca_vst = optimizePCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), total_variance = 0.8)
+plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection), axes = c(1,4), axes_labels = c("PC1", "PC4"))
 
-# screeplot
-par(mfrow = c(1,1))
-screeplot(pca_vst, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
+par(old_par)
+# tSNE hyper parameter tuning
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "perplexity")
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "iterations", neighbors = 75)
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "check", neighbors = 75, iterations = 6*50)
+tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 75, max_iter = 6*50, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+
+par(old_par)
+# UMAP hyper parameter "tuning"
+set.seed(1)
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "neighbors")
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.25, iterations = 300, display_legend = TRUE)
+umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 50, n_components = 2, min_dist = 0.25, n_epoch = 300, metric = "euclidean")
+
+par(old_par)
+optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "neighbors")
+optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
+optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
+optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.3, iterations = 100, display_legend = TRUE)
+umap_samples2 = umap(pca_vst$x[,1:11], method = "naive", n_neighbors = 35, n_components = 2, min_dist = 0.3, n_epoch = 200, metric = "euclidean")
+
+par(old_par)
+# MDS 
+mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection))
+mds_samples = mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), data_return = "classic")
+
+par(old_par)
+mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection))
+mds_samples2 = mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection), data_return = "classic")
+
+
+
+
 
 ## post-PCA hiuerarchical clustering by sample
 # revisit optimization
@@ -258,9 +287,34 @@ set.seed(NULL)
 rm()
 ```
 
-## Discussion
+## EA2 Discussion
+
+Principal Component Analysis (PCA):
+PCA allows for DR through means of decreasing axes of variance within the data structure.  For this DR technique it is important to remove as much "noisy variance" from the data structure and evaluate the distribution of variance among the relevant axes. To capture 80% of the variance, which assumes that 20% of the variance is simply noise within the data, the top 11 PCs approximate 80% of the total variance.  Analysis of the distribution of variance across these 11 PCs reveals that the first 4 PCs contribute significantly more to variance than the remaining 7, which show limited changes to variance contribution between them.  Visualization of the top 3 PCs in 2D plots identifies that the biological feature of interest correlates to the PC 1 and PC3 with the best separation visualized by PC3 vs PC1.  PC2 although contributing significantly more to variance (seen in the screeplot and the 2D visualizations) does not provide separation by the biological feature of interest  This suggests that the variance in this axis is representative of some other feature captured by the structure of the expression data absent of the current biological feature of interest.  In cases like this it would be valuable to investigate other data features in the meta data, especially ones that show moderate to poor correlation with the current biological feature of interest.  It is also interesting to see that the variance contribution difference between PC3 and PC4 is minimal.  To be thorough, a quick 2D PC score plot was generated to evaluate the dimension.  Although the dimension did not generate good separation between the different groups defined by the biological feature of interest, it did however reasonably separate the data into two groups (opposing directions of variance).  Again, suggestive of some potential biological feature but not the one of interest.  With the "optimal" number of PCs to include (11), the PCA scores can be subset and used as input for other DR techniques.
+
+t-Distribution Stochastic Neighbor Embedding (tSNE):
+tSNE through Rtsne() has a built in algorithm to perform PCA first.  Although this functionality can be turned off and could be used to demonstrate its value here, it was opted out of since tSNE without PCA is practically never recommended.  It is computationally expensive and tSNE is generally improved by PCA.  Hyper parameter tuning for tSNE focuses on the number of nearest neighbors used for embedding and the maximum iterations needed to reduce dissimilarity.  Besides visualizing the "goodness of fit", the KL divergence is used to evaluate the dissimilarity between the original data and the embedding.  How the data shifts from favoring local to global structure can be observed and finding the balance between the two while visually capturing the ideal groupings is simply a good rationale. As an added bonus, minimizing the max iterations will reduce execution time.   The stabilization we seen across different numbers of iterations is with the groups rather than the data within the reduced dimensional space as a whole.     
+
+Uniform Manifold Approximation and Projection (UMAP):
+UMAP through umap() does not perform PCA first unlike Rtsne(), thus it is inputted manually in the second iteration.  Similar to tSNE, hyper parameter tuning is dependent primarily on visualization to capture the data feature groupings as well as try to balance local and global structure influence on the embedding.  Here, hyper parameter tuning is done with number of nearest neighbors, minimum distance between neighbors and maximum number of iterations to stabilize the embedding.  Ultimately, the constancy between maximum number of iteration values communicates a reasonable hyper parameter tuning.   The sequential tuning process quickly stabilizes the embedding of both the data set and PCA scores.  
+
+
+Multidimensional Scaling (MDS):
+
+
 
 PCA was performed to reduce the dimension of the count data set.  Covariance captured within PC1 aligns perfectly with the experimental treatment.  PC2 captures variance in a dimension that does not exhibit any alignment with infection type while PC3 does well at separating infection from non-infection samples, suggesting that the variance in this dimension has some sort of biological relevance in line with the experiment.  A screeplot identifies that the overwhelming majority of the covariance within the data is captured within the first 4 PCs.  After truncating the data along with the dimensional reduction of PCA (use of PCs 1-4), outliers from previous hierarchical clustering by samples were avoided and were able to cluster the groups to experimental infection treatments with 100% accuracy and reflect the PCA results interpretation. Other dimensional reduction techniques are viable for reducing the noise and improving the expression bias.  TO follow up, t-SNE and UMAp methods will be optimized and then evaluated.  
+
+## Code Chunk
+
+``` {r EA2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+
+
+```
+
+## Discussion
+
 
 ## Code Chunk
 
