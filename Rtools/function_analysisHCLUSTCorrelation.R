@@ -12,7 +12,7 @@
 # dependencies
   # dendextend, corrplot
 
-analysisHCLUSTCorrelation = function (data_object, feature_labels, target = "features", dist_calculation = c("euclidean", "manhattan", "pearson", "spearman"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), correlation_method = "cophenetic", display_type = "pie") {
+analysisHCLUSTCorrelation = function (data_object, feature_labels, usage = "features", dist_calculation = c("euclidean", "manhattan", "pearson", "spearman"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), correlation_method = "cophenetic", display_type = "pie") {
   # errors and flags
   
   

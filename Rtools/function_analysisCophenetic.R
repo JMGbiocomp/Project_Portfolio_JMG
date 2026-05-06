@@ -44,10 +44,3 @@ analysisCophenetic = function (data_object, feature_labels, usage = "features", 
   }
   return(summary_data)
 }
-
-
-
-
-
-
-analysisCophenetic(data_object = mds_samples$points, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = c("euclidean", "manhattan", "pearson", "spearman"), linkage_method = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), verbose = TRUE)

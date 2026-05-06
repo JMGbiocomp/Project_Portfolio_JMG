@@ -15,11 +15,11 @@ mdsOptimize = function (data_object, feature_labels, usage = "features", data_re
     classic_mds = cmdscale(d = dist(t(data_object)), list. = TRUE)
     nonmetric_MDS = isoMDS(d = dist(t(data_object)))
     set.seed(100)
-    feature_colors = colorCode(feature_data = feature_labels, color_replace = FALSE)
+    feature_colors = codeColor(feature_data = feature_labels, color_replace = FALSE)
   } else if (usage == "species") {
     classic_mds = cmdscale(d = as.dist(1-cor(t(data_object))), list. = TRUE) # may need to make it abs(correlation) to work correctly
     nonmetric_MDS = isoMDS(d = as.dist(1-cor(t(data_object))))
-    feature_colors = colorCode(feature_data = feature_labels, color_replace = TRUE)
+    feature_colors = codeColor(feature_data = feature_labels, color_replace = TRUE)
   }
   
   par(bg = "white", mfrow = c(1,2), mar = c(8,4,4,5), xpd = TRUE)

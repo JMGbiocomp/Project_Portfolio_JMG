@@ -7,10 +7,8 @@
   # linkage_methods = character vector of linkage methods for evaluation passed to hclusteringObject function to generate dendrograms
   # usage = single character vector to distinguish the usage for the function between data QC and exploratory analysis; choose from "Quality Control" or "Exploratory"  
 
-copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculation = c("Euclidean", "Pearson", "Spearman", "Manhattan"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), usage = "Quality Control") {
+copheneticEval = function (data_object = NA, feature_labels = NA, dist_calculation = c("euclidean", "pearson", "spearman", "manhattan"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), usage = "features") {
   # errors and flags
-  
-  if (length(feature_labels) != dim(count_data)[1] & usage != "reduction") {stop("the number of feature labels must equal the number of features (samples)")}
   
   linkage.ct = length(linkage_methods) # number of linkage methods
   dist.ct = length(dist_calculation) # number of distance calculation methods
@@ -23,36 +21,37 @@ copheneticEval = function (count_data = NA, feature_labels = NA, dist_calculatio
   # flow control for combinatorial analysis of cophenetic distance of dendrograms
   for (d in dist_calculation) {
     for (l in linkage_methods) {
-      h_object = hclustering_object(count_data = count_data, feature_labels = feature_labels, object_type = "hclust", distance_type = d, linkage_method = l, usage = usage, dend_plot = FALSE)
-      if (d == "Pearson") {
+      h_object = hclustObject(data_object = data_object, feature_labels = feature_labels, transpose_data = usage, dist_method = d, linkage_method = l, dend_plot = FALSE, object_return = "hclust")
+      if (d == "pearson") {
         if (usage == "reduction") {
-          dist_matrix = as.dist(1-stats::cor(count_data))
+          dist_matrix = as.dist(1-stats::cor(data_object))
           dist_matrix = as.matrix(dist_matrix)
         } else {
-          dist_matrix = as.dist(1-stats::cor(t(count_data)))          
+          dist_matrix = as.dist(1-stats::cor(t(data_object)))          
         }
-      } else if (d == "Spearman") {
+      } else if (d == "spearman") {
         if (usage == "reduction") {
-          dist_matrix = as.dist(1-stats::cor(count_data, method = "spearman"))
+          dist_matrix = as.dist(1-stats::cor(data_object, method = "spearman"))
           dist_matrix = as.matrix(dist_matrix)
         } else {
-          dist_matrix = as.dist(1-stats::cor(t(count_data), method = "spearman"))          
+          dist_matrix = as.dist(1-stats::cor(t(data_object), method = "spearman"))          
         }
-      } else if (d == "Manhattan") {
+      } else if (d == "manhattan") {
         if (usage == "reduction") {
-          dist_matrix = dist(count_data, method = "manhattan")
+          dist_matrix = dist(data_object, method = "manhattan")
           dist_matrix = as.matrix(dist_matrix)
         } else {
-          dist_matrix = dist(t(count_data), method = "manhattan")          
+          dist_matrix = dist(t(data_object), method = "manhattan")          
         }
-      } else {
+      } else  if (d == "euclidean") {
         if (usage == "reduction") {
-          dist_matrix = dist(count_data, method = "euclidean")
+          dist_matrix = dist(data_object, method = "euclidean")
           dist_matrix = as.matrix(dist_matrix)
         } else {
-          dist_matrix = dist(t(count_data), method = "euclidean")          
+          dist_matrix = dist(t(data_object), method = "euclidean")          
         }
       }
+      
       if (usage == "reduction") {
         coph_matrix = cophenetic(h_object)
         coph_matrix = as.matrix(coph_matrix)

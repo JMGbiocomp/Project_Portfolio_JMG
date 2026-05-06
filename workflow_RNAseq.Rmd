@@ -62,9 +62,9 @@ rm(tbl, annot, sample_table)
 
 # Data QC and Filtering
 
-## Code Chunk Part 1
+## QC1 Code Chunk
 
-``` {r data_QC1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+``` {r QC1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 # == pre-filter low count genes == #
 # keep genes with at least 2 counts > 10
@@ -103,46 +103,52 @@ boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
 boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
 boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
 
-## assessment of variance stabilization of log transformation and TPM normalization
-par(mfrow = c(2,2))
-varTable = varianceEval(RNAseqCounts, plot_title = "Raw Counts Variance Stability", table_return = TRUE, scatter_return = TRUE)
-TPM_varTable = varianceEval(RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", table_return = TRUE, scatter_return = TRUE)
-log_varTable = varianceEval(log2(RNAseqCounts)+1, plot_title = "log2 Transformed Raw Counts Variance Stability", table_return = TRUE, scatter_return = TRUE)
-logTPM_varTable = varianceEval(log2(RNAseqCounts_TPM)+1, plot_title = "log2 Transformed TPM Normalization Variance Stability", table_return = TRUE, scatter_return = TRUE)
-# add gene symbols to data structures for readability
-rownames(varTable) = rownames(RNAseqCounts)
-rownames(log_varTable) = rownames(RNAseqCounts)
-rownames(TPM_varTable) = rownames(RNAseqCounts_TPM)
-rownames(logTPM_varTable) = rownames(RNAseqCounts_TPM)
-# reorder tables by total variance 
-varTable = varTable[order(varTable$variance, decreasing = TRUE),]
-log_varTable = log_varTable[order(log_varTable$variance, decreasing = TRUE),]
-TPM_varTable = TPM_varTable[order(TPM_varTable$variance, decreasing = TRUE),]
-logTPM_varTable = logTPM_varTable[order(logTPM_varTable$variance, decreasing = TRUE),]
-# compare top variance genes by normalization and transformation methods
-head(varTable, n = 10)
-head(TPM_varTable, n = 10)
-head(log_varTable, n = 10)
-head(logTPM_varTable, n = 10)
-# SD vs mean plots to aid in variance stabilization assessment
-# library(ggplot2)
-# library(gridExtra)
-gridExtra::grid.arrange(MSDplot(varTable, "Raw Counts"), MSDplot(log_varTable, "log2 Transformed Raw Counts"), MSDplot(TPM_varTable, "TPM Normalized Counts"), MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), ncol = 2, nrow = 2, top = "SD vs Mean Plots")
+# assessment of data quality by variance stability
+par(old_par)
 
-# transform TPM normalized data
+# raw data
+analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data", data_return = "mds")
+summary_RAW = analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+# TPM normalization
+analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "mds")
+summary_TPM = analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+# log2 transformed raw data 
+analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "mds")
+summary_logRAW = analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+# log2 transformed TPM
+analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "mds")
+summary_logTPM = analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+
+## reorder tables by total variance 
+summary_RAW = summary_RAW[order(summary_RAW$variance, decreasing = TRUE),]
+summary_logRAW = summary_logRAW[order(summary_logRAW$variance, decreasing = TRUE),]
+summary_TPM = summary_TPM[order(summary_TPM$variance, decreasing = TRUE),]
+summary_logTPM = summary_logTPM[order(summary_logTPM$variance, decreasing = TRUE),]
+
+# compare top 10 genes by variance for each normalization and transformation method
+head(summary_RAW, n = 10)
+head(summary_logRAW, n = 10)
+head(summary_TPM, n = 10)
+head(summary_logTPM, n = 10)
+
+# finalize transformation of TPM normalized data
 RNAseqCounts_TPM = log2(RNAseqCounts_TPM) + 1
 RNAseqCounts_TPM[RNAseqCounts_TPM == Inf | RNAseqCounts_TPM == -Inf] = 0 # remove Inf and -Inf values
 
 # Clear system memory
 rm(keep, sample_sampling)
+
 ```
 
-## Discussion Part 1
+## QC1 Discussion
 
-Transformation (log2) provides a significant stabilization of variance across species (genes) for the count data, which is confirmed when comparing the log2 transformed raw counts with the Transcripts per Million (TPM) normalization.  Top variance genes become synonymous between raw counts and TPM normalization after transformation; however, from further analysis of the stabilization of variance across all species improvements to the stabilization is made by the TPM normalization (see 'SD vs Mean Plots').  TPM normalization is a viable method to compare expression profiles because it normalizes by gene length (within sample) and by sequencing depth (between samples) although this method is not considered the most robust way to normalize and 'de-noise' RNAseq data.  To validate and potentially refute this normalization and transformation of the data for downstream analysis, the vst() normalization methods from the DEseq2 package will be evaluated for comparison. rlog() normalization will be overlooked as the sample count is extremely high (503) and this normalization method is better fro low sample counts due to the computational burden of the algorithm. 
+Transformation (log2) provides a significant stabilization of variance across species (genes) for the count data, which is confirmed when comparing the log2 transformed raw counts with the Transcripts per Million (TPM) normalization.  Top variance genes become synonymous between raw counts and TPM normalization after transformation; however, from further analysis of the stabilization of variance across all species improvements to the stabilization is made by the TPM normalization (see 'Mean-SD plots'). TPM normalization is a viable method to compare expression profiles, because it normalizes by gene length (within sample) and by sequencing depth (between samples) although this method is not considered the most robust way to normalize and 'de-noise' RNAseq data. The consensus firmly places its value for comparing within sample expression levels rather than between samples altohugh the method attempts to account for both. It is also important to note that simple transofrming the data and normalizing with TPM are not consider "variance stabilizing" methods.  The stabilization is merely relative to the raw data.
 
+To validate or refute use of TPM normalization and log2 transformation of the data for downstream analysis, the vst() normalization method from the DEseq2 package will be evaluated for comparison. rlog() normalization will be overlooked as the sample count is extremely high (503) and rlog() is better suited for low sample counts due to the computational burden of the algorithm. 
 
-``` {r data_QC2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+## QC2 Data Chunk
+
+``` {r QC2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 library(DESeq2) # DESeq2 package contains robust normalization methods and differential expression worflow 
 rownames(sample_metaData) = colnames(RNAseqCounts) # add rownames to match column names in count matrix
@@ -183,23 +189,27 @@ rm(sample_sampling)
 
 ```
 
-## Discussion Part 2
+## QC2 Discussion
 
-Discuss VSt ver transformed TPM, focus on the trend line and the osilation.  TPM basically has two distinct stabilized groups, arguably three with a transition group between the two.  VST osciliation trend may suggest better stabilization of variance across the range of means between species.  
+DESeq2 package provides the vst() function ("variance stabilization transformation").  As expected this normalization method improves expression data distribution accross all samples and variance across the range of mean expressions by species.  THe MSDplot for the TPM normalization reveals two, potnetially three, distinct groups defined by the mean.  THe VST normalization displays an minimal osilating variance average across the range means. Although neither is the ideal trendline, the CST normalization range of average variance is less than that of the TPM.  Also, the lack of a clear pattern across the range of menas suggests a more successful normalization rather than still containing an artifiact of the inherent bias of high expressing genes.  IT is with this rationale that the VST normalization will move forward in the analytical pipeline. 
 
-# Exploratory Analysis: Dimensionality Reduction
+# Unsupervised Learning (Exploratory Analysis): Dimensionality Reduction
 
 Dimensionality reduction (DR) methods are powerful tools to reduce data with high dimensions to a smaller number of dimensions, possibly just two, while preserving the global and local relationships between data points in the original data.  Within this reduced dimensional space much of the noise can be removed, global anomalies and local outliers can be identified and features of interest are capable of being analyzed visually, which is at the very least extremely difficult if not impossible within the space of the original data.  The former is crucial for finalizing data QC while the latter is a powerful tool to both support the bioligcal quyestion being asked and facilitate the generation of targeted, testable hypotheses.  To successfully reach these goals, it is often required to perform an analysis of the DR and/or undergo hyper parameter tuning to optimize the DR.  The most common DR methods are PCA (Principal Component Analysis), t-SNE (t-Distributed Stochastic Neighbor Embedding), UMAP (Uniform Manifold Approximation and Projection), and MDS (multidimensional Scaling).  PCA is a linear approach that identifies dimensions in order of greatest variance (Principal Components) - i.e. each subsequent dimension (axes) houses less variance between the data points than the last. Both t-SNE and UMAP are nonlinear DR methods that allow the user to define the number of dimensions the data will be reduced to and excel at capturing local and global structures within the data.  t-SNE is known better for capturing local structure and therefore excellent for scRNAseq data analysis while UMAP can be preferred over t-SNE since it is computationally less demanding (faster) and considered to better balance capture of global and local structure. Within this context, PCA would be considered a strong DR technique to evaluate global structure.  MDS focuses on preserving pairwise distances between data points - i.e. it maps the data into reduced dimensions in which the more similar data is the closer they are to each other within this space.  This is uniquely different from t-SNE and UMAP, which the distances of data within these reduced dimensional space is not as strongly connected to similarity.  This difference makes MDS a strong DR method for pre-processing prior to K-means or DBSCAN clustering algorithms as well as outlier detection. Following DR, the data in the reduced dimensional space can be applied to unsupervised learning approaches - i.e. clustering - in order to finish the data quality control process and investigate the biology of interest as stated above.  
 
-Before the various DR tools and unsupervised learning methods are explored, an example of applying unsupervised learning to normalized and transformed data without DR will help highlight the advantages of DR thereafter.  To do this, hierarchical clustering will be applied to the data set and observe how well the feature structure is captured by the approach as a baseline for comparison.  
+Before several unsupervised learning methods including various DR tools are explored, an example of applying unsupervised learning to normalized and transformed data without DR will help highlight the advantages of DR thereafter.  To do this, hierarchical clustering will be applied to the data set and observe how well the feature structure is captured by the approach as a baseline for comparison.  
 
-##  EA1 Code Chunk
+## An Example of Unsupervised Learning without Dimensionality Reduction of High Dimensional Data
+
+###  EA1 Code Chunk
 
 ``` {r EA1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
 # load functions (tools) for exploratory analysis
 source("Rtools/load_exploratoryAnalysis.R")
+
 # Hierarchical clustering of the normalized and transformed data set
-# Cophenetic correlation coefficient to evaluate gloabl accuracy of hclust object structure for combinations of distance calculations and linkage methods
+# Cophenetic correlation coefficient to evaluate global accuracy of hclust object structure for combinations of distance calculations and linkage methods
 # Limits of cophenetic correlation coefficients can be mitigated by correlation plots between them
 
 cophTable = analysisCophenetic(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection)) # combinatorial evaluation of cophenetic correlation coefficients
@@ -211,15 +221,19 @@ plot(color_branches(dend_vst, k = 6)) # view dendrogram with the optimal number 
 
 # clear system memory 
 # rm(cophTable, dend_vst)
+
 ```
 
-## EA1 Discussion
+### EA1 Discussion
 
-Because hierarhcical clustering requires data to be converted into a distance matrix and will perform bottom-up grouping to generate the clusters (define the relationship between data points), it is wise to carefully choose which distance calculation and linkage method are optimal for evaluating the data.  Beside considering what type of question will be asked, a valuable measure to evaluate how well the hierarchical structure represents the data is the cophenetic correlation coefficient.  However, as a single metric masks the nuances of the structure in relationship the the data - i.e. a similar correlation values between two different parameter settings does not reflect a similar structure.  To mitigate this short coming, the correlation between these structures was evaluated.  Linkage methods can be rationally chosen but require validation by looking at the dendrogram.  These tools help reduce the amount of structures needed to be investigated and provide a quantitative means of assessment.  Reviewing the dendrogram after the most appropriate parameters were chosen there seems to be three major groups with 2-4 isolated groups.  To evaluate the height at which the tree needs to be cut to capture most of the biology, an iterative function evaluates how well the leaves separate into the different groups defined by the biology of interest over a range of leaf counts.  Reviewing the results, the grouping of the samples to biological feature begins at leaf count 6 and does not improve with increased leaf counts.  This leaf count is validated with another visualization of the dendrogram colored by leaf.  Despite the success of accurately separating a large majoprity of the samples, the cluster count (6) was double that of the group count (3).  Hypothetically, if the results were worse the information would not provide sufficient confidence that the structure within the data is relevant to the biology of interest.  SHoudl these isolated groups/samples be considered outliers? Erros in the experiment? This is where dimnensionality reduction comes in handy.  The goal is to help remove some of the unwanted noise in the data, reinforce the presence of any global/local outliers, and hopefully reveal a stronger relationship between the data structure and the biology.  
+Because hierarhcical clustering requires data to be converted into a distance matrix and will perform bottom-up grouping to generate the clusters (define the relationship between data points), it is wise to carefully choose which distance calculation and linkage method are optimal for evaluating the data.  Beside considering what type of question will be asked (does coexpression or expression magnitude provide a better measure for analysis?), a valuable measure to evaluate how well the hierarchical structure represents the data is the cophenetic correlation coefficient.  However, as a single metric masks the nuances of the structure in relationship the the data - i.e. a similar correlation values between two different parameter settings does not reflect a similar structure.  To mitigate this short coming, the correlation between these structures was evaluated.  Linkage methods can be rationally chosen but require validation by looking at the dendrogram.  These tools help reduce the amount of structures needed to be investigated and provide a quantitative means of assessment.  Reviewing the dendrogram after the most appropriate parameters were chosen there seems to be three major groups with 2-4 isolated groups.  To evaluate the height at which the tree needs to be cut to capture most of the biology, an iterative function evaluates how well the leaves separate into the different groups defined by the biology of interest over a range of leaf counts.  Reviewing the results, the grouping of the samples to biological feature begins at leaf count 6 and does not improve with increased leaf counts.  This leaf count is validated with another visualization of the dendrogram colored by leaf.  Despite the success of accurately separating a large majoprity of the samples, the cluster count (6) was double that of the group count (3).  Hypothetically, if the results were worse the information would not provide sufficient confidence that the structure within the data is relevant to the biology of interest.  SHoudl these isolated groups/samples be considered outliers? Erros in the experiment? This is where dimnensionality reduction comes in handy.  The goal is to help remove some of the unwanted noise in the data, reinforce the presence of any global/local outliers, and hopefully reveal a stronger relationship between the data structure and the biology.  
 
-Now, lets look at several different DR tools for the following DR techniques: PCA, tSNE, UMAP and MDS.  
+## Common Dimensionality Reduction Methods
 
-## EA2 Code Chunk
+Now, lets look at several different DR tools for the following DR techniques: PCA, tSNE, UMAP and MDS. 
+**Important Note: unless a specific seed is set tSNE and UMAP will yield different results per run, which will cause some degree of discrepancy between optimal hyper parameter settings
+
+### EA2 Code Chunk
 
 ``` {r EA2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # reset graphical parameters 
@@ -261,33 +275,12 @@ par(old_par)
 mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection))
 mds_samples2 = mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection), data_return = "classic")
 
-
-
-
-
-## post-PCA hiuerarchical clustering by sample
-# revisit optimization
-cophTable_pca = copheneticEval(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
-cophTable_pca
-max(cophTable_pca)
-linkageCorrelation(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), dist_calculation="Euclidean", usage = "reduction", plot_title = "Euclidean Distance_PCA reduction (PC1-4)")
-
-# perfrom hierarchical clustering by sample
-pcaHC_vst = hclustering_object(count_data = pca_vst$x[,1:4], feature_labels = c(t(sample_metaData$infection)), object_type = "dend", distance_type = "Euclidean", linkage_method = "average", dend_plot = TRUE, usage = "reduction")
-table(sample_metaData$infection) # number of samples by infection type
-optimizeTree(hc_object = pcaHC_vst, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # reports which samples by feature are clustered within each cluster
-plot(color_branches(pcaHC_vst, k = 3)) # plot optimal clustering number found from analysis
-
-## A more comprehensive PCA of the data set
-
-analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, top_result = 10, PC_error = 10)
-
 # clear system memory
 set.seed(NULL)
 rm()
 ```
 
-## EA2 Discussion
+### EA2 Discussion
 
 Principal Component Analysis (PCA):
 PCA allows for DR through means of decreasing axes of variance within the data structure.  For this DR technique it is important to remove as much "noisy variance" from the data structure and evaluate the distribution of variance among the relevant axes. To capture 80% of the variance, which assumes that 20% of the variance is simply noise within the data, the top 11 PCs approximate 80% of the total variance.  Analysis of the distribution of variance across these 11 PCs reveals that the first 4 PCs contribute significantly more to variance than the remaining 7, which show limited changes to variance contribution between them.  Visualization of the top 3 PCs in 2D plots identifies that the biological feature of interest correlates to the PC 1 and PC3 with the best separation visualized by PC3 vs PC1.  PC2 although contributing significantly more to variance (seen in the screeplot and the 2D visualizations) does not provide separation by the biological feature of interest  This suggests that the variance in this axis is representative of some other feature captured by the structure of the expression data absent of the current biological feature of interest.  In cases like this it would be valuable to investigate other data features in the meta data, especially ones that show moderate to poor correlation with the current biological feature of interest.  It is also interesting to see that the variance contribution difference between PC3 and PC4 is minimal.  To be thorough, a quick 2D PC score plot was generated to evaluate the dimension.  Although the dimension did not generate good separation between the different groups defined by the biological feature of interest, it did however reasonably separate the data into two groups (opposing directions of variance).  Again, suggestive of some potential biological feature but not the one of interest.  With the "optimal" number of PCs to include (11), the PCA scores can be subset and used as input for other DR techniques.
@@ -303,17 +296,190 @@ Multidimensional Scaling (MDS):
 
 
 
-PCA was performed to reduce the dimension of the count data set.  Covariance captured within PC1 aligns perfectly with the experimental treatment.  PC2 captures variance in a dimension that does not exhibit any alignment with infection type while PC3 does well at separating infection from non-infection samples, suggesting that the variance in this dimension has some sort of biological relevance in line with the experiment.  A screeplot identifies that the overwhelming majority of the covariance within the data is captured within the first 4 PCs.  After truncating the data along with the dimensional reduction of PCA (use of PCs 1-4), outliers from previous hierarchical clustering by samples were avoided and were able to cluster the groups to experimental infection treatments with 100% accuracy and reflect the PCA results interpretation. Other dimensional reduction techniques are viable for reducing the noise and improving the expression bias.  TO follow up, t-SNE and UMAp methods will be optimized and then evaluated.  
+PCA was performed to reduce the dimension of the count data set.  Covariance captured within PC1 aligns perfectly with the experimental treatment.  PC2 captures variance in a dimension that does not exhibit any alignment with infection type while PC3 does well at separating infection from non-infection samples, suggesting that the variance in this dimension has some sort of biological relevance in line with the experiment.  A screeplot identifies that the overwhelming majority of the covariance within the data is captured within the first 4 PCs.  After truncating the data along with the dimensional reduction of PCA (use of PCs 1-4), outliers from previous hierarchical clustering by samples were avoided and were able to cluster the groups to experimental infection treatments with 100% accuracy and reflect the PCA results interpretation. Other dimensional reduction techniques are viable for reducing the noise and improving the expression bias.  To follow up, t-SNE and UMAp methods will be optimized and then evaluated.  
 
-## Code Chunk
+# Unsupervised Learning (Exploratory Analysis): Clustering 
 
-``` {r EA2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+The importance of clustering in unsupervised learning is simple, an algorithm is applied to group the data by their structural similarities absent of any predefined labels.  By the relationships between each data point and its neighbors, the algorithm captures structure within the data that may or may not corroborate the biological feature/s of interest.  When cluster results identically or closely match groupings by feature, confidence is instilled that the hypothesized relationship has validity. It also can provide insight into how data similarly contributes to the data structure when no such defining feature exists for them, either achieved by looking at individual species rather than features or when the current feature/s of interest show very weak correlation with the clustering results.  At this point it should be clear that clustering is a powerful driver for hypothesis validation and generation.  
 
+Now, the following clustering methods will be demonstrated: the previous discussed method (Hierarchical), K-means (centroid-based) and DBSCAN (density-based) clustering. Like DR techniques, unique parameter tuning is essential to accurately apply the clustering algorithm to the data.
+
+## Hierarchical Clustering
+
+### EA3 Code Chunk
+
+``` {r EA3, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+par(old_par) # reset graphic parameters
+
+# PCA Hierarchical Clustering
+cophTable_pca = analysisCophenetic(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_pca
+analysisHCLUSTCorrelation(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = c("euclidean", "manhattan", "pearson"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid"))
+
+### Average linkage method selected for magnitutde and coepxression evaluation
+dend_pca_magnitude = objectHCLUST(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_pca_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_pca_magnitude, k = 4)) # view dendrogram with the optimal number of leaves to capture the biology
+
+dend_pca_coexpression = objectHCLUST(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_pca_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_pca_coexpression, k = 4)) # view dendrogram with the optimal number of leaves to capture the biology
+
+## tSNE Hierarchical Clustering
+cophTable_tsne = analysisCophenetic(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_tsne
+analysisHCLUSTCorrelation(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced")
+
+### Average linkage method selected for magnitutde and coepxression evaluation
+dend_tsne_magnitude = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_tsne_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_tsne_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
+
+dend_tsne_coexpression = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_tsne_coexpression, leaf_count = 10, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_tsne_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
+
+## UMAP Hierarchical Clustering
+
+cophTable_umap = analysisCophenetic(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_umap
+analysisHCLUSTCorrelation(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced")
+
+### Average linkage method selected for magnitutde and coepxression evaluation
+dend_umap_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_umap_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_umap_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
+
+dend_umap_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_umap_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_umap_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
+
+## MDS Hierarchical Clustering
+
+cophTable_mds = analysisCophenetic(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_mds
+analysisHCLUSTCorrelation(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection), usage = "reduced")
+
+### Average linkage method selected for magnitutde and coepxression evaluation
+dend_mds_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_mds_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_mds_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
+
+dend_mds_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_mds_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_mds_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
 
 
 ```
 
-## Discussion
+### EA3 Discussion
+
+pca: euclidean average is highly correlated with all other combinations with high cophenetic values
+
+tSNE: all pearson and spearman combinations are perfectly correlated (positive) and all euclidean and manhattan combinations are positively corealted perfectly and between them is exactly 0.5 positive correlation
+
+UMAP: similar results to tSNE except single higher correlation between the distance and correlation as distance combinations 
+
+MDS: needs review
+
+The most important aspect of this demonstration is the affect of DR on the hierarchical construction of the data.  Regardless of framing the analysis against expression magnitude or expression pattern (coexpression), hierarchical clustering using PCA scores generates the same global structure between the data features with differences confined to the less obvious structures at the lowest levels (height in the dendrogram).  With sample feature sizes this large, the structure at this level is typically overlooked and therefore relationships between individual features within a cluster require a deeper or horizontal analysis method.  Ultimately, it is clear PCA has improved hierarchical clustering of the data to near perfect accuracy.  Using tSNE, UMAP or MDS has a markedly different effect on the analytical pipeline. Ultimately, these DR techniques strip the data of a structure that is effectively analyzed for coexpression. PCA retains this capability, because it is a linear technique capturing the variance across the number of dimensional axes. Once the other three DR techniques embed the data into the new dimensional space, physical distance between them becomes the only true calculation method to construct hierarchical order of similarity.  It may be best to think of it as expression magnitude and pattern have been embedded together within the new structure.  To this end, applying a distance calculation to any of these DR data structures provides the cleanest and perfectly accurate clustering against the biology of interest.  By hierarchical clustering and with the aid of either PCA, tSNE, UMAP or MDS DR, gene expression of macrophages being well characterized by infection response is strongly supported.  Any related hypotheses stemming from this identified relationship would be reasonable to investigate considering this evidence - e.g. the innate immune response of macrophages is unique to the insulting pathogen.  
+
+## Centroid-based Clustering: K-means
+
+### EA4 Code Chunk
+
+``` {r EA4, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+par(old_par) # reset graphic parameters
+
+# PCA K-means Clustering
+optimizeKmeans(data_object = pca_vst$x[,1:11])
+# tSNE K-mean Clustering
+optimizeKmeans(data_object = tSNE_samples$Y)
+# UMAP K-means Clustering
+optimizeKmeans(data_object = umap_samples2$layout)
+# MDS K-means Clustering
+optimizeKmeans(data_object = mds_samples2$points)
+
+```
+
+### EA4 Discussion
+
+This optimization tool for K-means clustering does several things: provide a visualization of the distribution of variance within each cluster (withinSS) by center count and the total change in within (withinSS), between(betweenSS) and ratioed (betweenSS/totalSS) variance by center count.  Ideally, the number of centers is optimized for a data set when the variance within each cluster is consistent and the change in the different variance metrics is minimal with subsequent increases in centers (elbow plots).  
+
+In this case with respect to the biology of interest, optimization of k-means clustering for the data after PCA and MDS do not show promise in providing corroborating evidence.  The the most consistent distribution of withinSS across clusters is less obvious and the elbow plots potentially suggest at least double the number of feature groups is the optimal number of clusters.  Compare these results to the tSNE and umap DR data.  These cases display a sharp contrast.  The results from optimization with these data objects are a clear example of ideal: the withinSS is obvious most consistent with 3 centers and the the elbow plots support 3 centers as the kink before the change in variance metrics is negligible with increases in clsuter count. 
+
+## Density-based Clustering: DBSCAN
+
+### EA5 Code Chunk
+
+``` {r EA5, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# PCA DBSCAN 
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "tune")
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "test", n_size = c(20,25,30,50), hp_check)
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "check", hp_check = c(20,3)) # tuned to focus more on local structure
+
+# tSNE DBSCAN 
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "tune")
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "test", n_size = c(0.4,0.6,1.0,2.0), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "check", hp_check = c(2,20)) # tuned to more global strucutre over local 
+
+# UMAP DBSCAN
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "tune")
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "test", n_size = c(0.3,0.4,0.5,1), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(0.3,3))
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(0.5,6))
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(1,20))
+
+# MDS DBSCAN
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "tune")
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "test", n_size = c(11,13,18,40), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "check", hp_check = c(18,6))
+
+```
+
+### EA5 Discussion
+
+Hyper parameter tuning for DBSCAN's density-based clustering leverages the "dbscan" package, specifically the kNNdistplot() function.  It allows us to visualize the relationship between minimum number of neighbors for recognizing a neighborhood and the size of the neighborhood vs number of points captured.  Interruption of these plots allows use to find the optmial neighborhood size per neighborhood point minimum, which translates to defining clusters by high density relative to these values.  If it isn't obvious already, the spatial relationship between data within its defined dimensional space jointly and ultimately defines these hyper parameter values.  In other words, the Dr technique and therefore how the high dimensional data is embedded into the low dimensional state in junction with the feature of interest strongly influences the tuning process.  Thus, it is crucial to evaluate a density-based clustering algorithm like dbscan across several possible optimal settings and compare.  The lack of actively deciding how many centers/clusters are recognized lets the algorithm speak for itself.  Examples of its execution demonstrate that the effects of favoring either end of the spectrum relative to the low dimensional data (see output for UMAP examples).  Additionally, the lack of need to define the number of clusters/centers allows for the algorithm to assign data points to a "0" cluster, which is interrupted as an anomaly within the data.  It certainly saves time performing global and local anomaly detection methods, which will be covered later.  
+
+
+# Supervised Learning 
+
+## Differential Expression Analysis
+
+A fundamental supervised learning method is differential expression analysis in which experimental groups are compared gene by gene.  The fold-change in expression between the two defines how the gene's expression changes from one group to the other, both directional and at a relative magnitude. The larger the fold-change magnitude the more the expression of the gene shifts.  P-values aid in the interruption of significance and can be adjusted for multiple hypothesis testing.  By setting a cutoff value for the fold-change and ensuring the probability of encountering such a fold-change reaches an also user defined p-value cutoff, a subset of genes with potential biological significance by the specific group comparison is identified, "differentially expressed genes" (DEG), and poised for downstream hypothesis generation.  A robust R bioconductor R package exists for this process, DESeq2, which contains the VST normalization method used previous. Because the QC and normalization process was performed prior to this approach with custom tools, only the most basic DESeq2 workflow is needed to perform  differential expression analysis for the data set.  
+
+### DEG Code Chunk
+
+``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+dds = DESeq(deSEQ)
+res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
+DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
+colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_CvsS) = rownames(res_CvsS)
+DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
+DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.1,]
+
+res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 0.5, alpha = 0.01)
+DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
+colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_CvsL) = rownames(res_CvsL)
+DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
+DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.1,]
+
+res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 0.5, alpha = 0.01)
+DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
+colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
+rownames(DEGresults_LvsS) = rownames(res_LvsS)
+DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
+DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.1,]
+
+```
+
+### DEG Discussion 
 
 
 ## Code Chunk
@@ -351,7 +517,7 @@ kclusterWithinSS(umap_samples$layout, cluster_count = 3, normalize_comparison = 
 
 ```
 
-## Discussion
+### Discussion
 
 Successful optmimization of dimensional reduction methods t-SNE and UMAP to well represent the treatment groups.  CLuster analysis must be performed to cooraborate the results for all three methods.  
 
@@ -388,35 +554,7 @@ Along with dimensionality reduction, clustering successfully captures the biolog
 
 # Differential Expression Analysis
 
-## Code Chunk
 
-``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-
-dds = DESeq(deSEQ)
-res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
-DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
-colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_CvsS) = rownames(res_CvsS)
-DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
-DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.1,]
-
-res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 0.5, alpha = 0.01)
-DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
-colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_CvsL) = rownames(res_CvsL)
-DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
-DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.1,]
-
-res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 0.5, alpha = 0.01)
-DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
-colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_LvsS) = rownames(res_LvsS)
-DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
-DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.1,]
-
-```
-
-## Discussion 
 
 
 # Exploratory Analysis by Genes
@@ -501,6 +639,9 @@ clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNA
 ``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 # PCA
 
+## A more comprehensive PCA of the data set
+
+analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, top_result = 10, PC_error = 10)
 
 
 ```

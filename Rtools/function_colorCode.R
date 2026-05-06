@@ -1,13 +1,23 @@
 ## === Create a color scheme for values/features intended for plots === ##
-#
-#
+# Function has a predefined color scheme set fitting for colorblindness distinction
+# Functionality includes expansion beyond limited colors in cases where sample size is larger than the number of colors as well as handles replacement
 # Arguments:
-  # feature_data
-  # color_replace
+  # feature_data = character or numeric vector for feature labels
+  # color_replace = override control for replacement function of sampling
 
-colorCode = function (feature_data, color_replace = FALSE) {
+codeColor = function (feature_data, color_replace = FALSE) {
   factors = unique(feature_data)
-  color_code = sample(x = colors(distinct = TRUE), size = length(factors), replace = color_replace)
+  distinct_colors = c("black","darkgrey","red","blue","steelblue","orange","violet","lightgreen","magenta","darkred")
+  if (length(factors) <= length(distinct_colors)) {
+    color_code = sample(x = distinct_colors, size = length(factors), replace = color_replace)
+  } else {
+    color_choices = colors(distinct = TRUE)
+    if (length(factors) > length(color_choices)) {
+      color_code = sample(x = color_choices, size = length(factors), replace = TRUE)
+    } else {
+      color_code = sample(x = color_choices, size = length(factors), replace = color_replace)
+    }
+  }
   color_match = c()
   
   for (i in 1:length(feature_data)) {
