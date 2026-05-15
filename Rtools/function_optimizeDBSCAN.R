@@ -20,7 +20,7 @@ optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage
     hold_data = data_object$Y
     colnames(hold_data) = c("tSNE1", "tSNE2")
   } else if (data_type == "umap") {
-    hold_data = data_object$layout
+    hold_data = as.data.frame(data_object$layout)
     colnames(hold_data) = c("UMAP1", "UMAP2")
   } else if (data_type == "mds") {
     hold_data = data_object$points
