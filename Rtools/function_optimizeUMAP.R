@@ -10,7 +10,7 @@
 # dependencies:
   # UMAP
 
-optimizeUMAP = function (data_object, feature_varaible, usage = "neighbors", neighbors = c(5, 10, 15, 25, 50, 100), min_distance = c(0.05, 0.1, 0.25, 0.5, 0.8, 1.0), iterations = c(100, 200, 300, 500, 700, 1000), display_legend = FALSE) {
+optimizeUMAP = function (data_object, feature_varaible, usage = "neighbors", neighbors = c(5, 10, 15, 25, 50, 100), min_distance = c(0.05, 0.1, 0.25, 0.5, 0.75, 0.95), iterations = c(100, 200, 300, 500, 700, 1000), display_legend = FALSE) {
   
   point_colors = codeColor(feature_data = feature_varaible)
   

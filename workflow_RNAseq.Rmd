@@ -444,6 +444,80 @@ optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$in
 
 Hyper parameter tuning for DBSCAN's density-based clustering leverages the "dbscan" package, specifically the kNNdistplot() function.  It allows us to visualize the relationship between minimum number of neighbors for recognizing a neighborhood and the size of the neighborhood vs number of points captured.  Interruption of these plots allows use to find the optmial neighborhood size per neighborhood point minimum, which translates to defining clusters by high density relative to these values.  If it isn't obvious already, the spatial relationship between data within its defined dimensional space jointly and ultimately defines these hyper parameter values.  In other words, the Dr technique and therefore how the high dimensional data is embedded into the low dimensional state in junction with the feature of interest strongly influences the tuning process.  Thus, it is crucial to evaluate a density-based clustering algorithm like dbscan across several possible optimal settings and compare.  The lack of actively deciding how many centers/clusters are recognized lets the algorithm speak for itself.  Examples of its execution demonstrate that the effects of favoring either end of the spectrum relative to the low dimensional data (see output for UMAP examples).  Additionally, the lack of need to define the number of clusters/centers allows for the algorithm to assign data points to a "0" cluster, which is interrupted as an anomaly within the data.  It certainly saves time performing global and local anomaly detection methods, which will be covered later.  
 
+# Unsupervised Learning: Application for Species Identification
+
+So far unsupervised learning hasn't extended beyond a global level analysis of the data.  Its application has been limited to anomaly detection and validation of the biological question/s at hand.  This, however, is not the scope of its application.  It is also excellent at discovering key species within the data underlining the biology of interest.  Considering its main attractive feature, species identified with these methods offer a unique confidence in their significance yet still require skepticism nonetheless.   
+
+## Principal Component Analysis At the Core
+
+Because PCA is a linear technique, the contribution of species to the variance at the feature level can be traced.  This aspect alone makes PCA an extremely powerful tool and the backbone of most unsupervised learning pipelines for gene expression analysis.  Not only does the output therefore provide insights for interpretation at the species level but also can serve as input for the other DR techniques with subsequent to clustering, same as the feature analysis.  The connection between the DR of the features and species is maintained, thus provides a beautifully complimentary analytic approach. Lets first look at a comprehensive PCA analysis before following up for a complete unsupervised learning pipeline to discover species of interest within the data.  A comparison of the results may reveal why or why not PCA is enough.  
+
+### EA6 Code Chunk
+
+``` {r EA6, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+par(old_par)
+IS_PCA = analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
+remove_samples = c()
+IS_PCA_QC = analysisPCA(data_object = RNAseqCounts_vst[,-remove_samples], feature_labels = c(sample_metaData$infection), plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
+# identified species ("IS") set to a loading threshold of 0.05 across the top 3 PCs
+IS_PCA 
+IS_PCA_QC
+
+```
+
+## EA6 Discussion
+
+This comprehensive tool offer several different features, removal the the "noise" variance (previous found), detection of global and local anomalies using three different metrics, analysis of species contributions to identified "true" variance, and final comparative visualizations to aid in the analysis.  Multiple metrics for anomaly detection are included to account for global and local detection as well as these methods are not universally absolute.  Reconstruction errors and local outlier factors are easy to interpret only when extreme.  Mahalanobis distance is useful but only when the structure of the data within the dimensions of interest fits a general circular shape and loses its usefulness when data clusters in irregular or elliptical shapes.  Some of these of issues can be mitigated by visualizing anomaly placement within the dimensional space but this isn't always the case.  That being said we are able to recognize how samples identified with higher LOF may indeed be anomalies worth removing based on the visualization of the first 3 PCs.  A rationale could be to remove any samples that reasonably breaks from the observable pattern of the feature groups from these plots.  This would be a very conservative approach to sample QC and acceptable considering how many samples there are per group and how few the identified anomalies are.  Run a second time with identified samples removed (index: ) we can see the effect.  Because of how these anomaly detection metrics are calculated and identified, subsequent execution will identify new samples as potential outliers.  Although an iterative process does reveal information about the structure of the data, it is only recommended for advanced users with specific goals in mind.  
+
+## Leveraging the Lineararity of PCA: An Example using UMAP
+
+## EA7 Code Chunk
+
+``` {r EA7, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+par(old_par)
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "neighbors")
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(20))
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(20), min_distance = 0.8)
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(15), min_distance = 0.8, iterations = 1000, display_legend = FALSE)
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(10), min_distance = 0.8, iterations = 1000, display_legend = FALSE)
+
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(10))
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(10), min_distance = 0.05)
+optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(10), min_distance = 0.05, iterations = 200, display_legend = FALSE)            
+umap_species = umap(pca_vst$rotation[,1:11], method = "naive", n_neighbors = 10, n_components = 2, min_dist = 0.05, n_epoch = 200, metric = "euclidean")
+
+```
+
+## EA7 Discussion
+
+First pass hyper parameter tuning had unexpected results.  Increasing the iterations improves embedding at the cost of speed, which typically results in tighter clusters. When this doesn't occur it suggest an issue with the other hyper parameter settings.  Second pass shows high stability across the range of minimum distances and iterations.  Although the structure within the two dimensional space is not expected, the hyper parameter tuning process of this pipeline suggests this is a quality embedding of the species loading data. Finally, a clustering method will define these species into groups which may provide unseful insights based on what we know so far form the analysis and preconcieved knowledge about the species themselves.  
+
+## EA8 Code Chunk
+
+``` {r EA8, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "tune")
+optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "test", n_size = c(0.01,0.1,0.5,5), hp_check, sample_replace = FALSE, plot_legend = FALSE)
+optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "check", hp_check = c(0.3,3))
+
+par(old_par)
+optimizeKmeans(data_object = umap_species$layout)
+
+par(old_par)
+cophTable_species = analysisCophenetic(data_object = umap_species$layout, feature_labels = c(rownames(RNAseqCounts_vst)), usage = "reduced")
+cophTable_species
+
+dend_umap_species = objectHCLUST(data_object = umap_species$layout, feature_labels = c(rownames(RNAseqCounts_vst)), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE)
+optimizeTree(hc_object = dend_umap_species, leaf_count = 10, feature_labels = c(rownames(RNAseqCounts_vst))) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+x = cutree(dend_umap_species, k = 3)
+plot(color_branches(dend_umap_species, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
+```
+
+
+## EA8 Discussion
+
+Because of the spatial embedding of the data within the reduced dimensional space, K-means clustering is unlikely the best method.  Because of the amount of overlay between the species within the space, density-based clustering may best capture subtleties unseen by the previous visualization.   
 
 # Supervised Learning 
 
@@ -480,6 +554,24 @@ DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.1,]
 ```
 
 ### DEG Discussion 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## Code Chunk
@@ -553,9 +645,6 @@ clusterAnalysis3(data_object = umap_samples, feature_labels = c(sample_metaData$
 Along with dimensionality reduction, clustering successfully captures the biological feature (macrophage infection response).  Reduction through PCA, hierarchical clustering was unable to match cluster number with infection type as several outliers distort the clustering.  At 6 perceived clusters, the bulk of the separation was finally captured via clustering.  Reduction through UMAP provides tighter clusters while tSNE generates clusters with a significantly wider spread. However, both algorithms still provide adequate inter-cluster spread. Each of the techniques was successful in matching the cluster number with infection type.  Based on these results infection type is captured well by the gene expression differences between samples.  Therefore, exploratory analysis by species (genes) will yield the genomic contribution to the phenotypic differences of macrophages by infection type.  
 
 # Differential Expression Analysis
-
-
-
 
 # Exploratory Analysis by Genes
 

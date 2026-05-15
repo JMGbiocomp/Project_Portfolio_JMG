@@ -12,7 +12,7 @@
 # dependencies:
   # stats, dbscan, ggplot2, gridExtra
 
-optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage = "tune", n_size, hp_check, sample_replace = FALSE) {
+optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage = "tune", n_size, hp_check, sample_replace = FALSE, plot_legend = TRUE) {
   if (data_type == "pca") {
     hold_data = data_object$x[,1:3]
     colnames(hold_data) = c("PC1", "PC2", "PC3")
@@ -55,7 +55,9 @@ optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage
         legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = unique(cluster_symbols), bty = "n")
       } else {
         plot(x = hold_data[,1], y = hold_data[,2], col = feature_colors, main = paste("minPts:", min_points[i],"-eps:", n_size[i]), cex = 1, pch = cluster_symbols, )
-        legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = 16, bty = "n")
+        if (plot_legend) {
+          legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = 16, bty = "n")
+        }
       }
     }
     
@@ -75,14 +77,31 @@ optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage
       c3 = ggplot(data = hold_data, aes(x = PC2, y = PC3, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
       f3 = ggplot(data = hold_data, aes(x = PC2, y = PC3, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
     } else if (data_type == "tsne") {
-      c1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-      f1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      if (plot_legend) {
+        c1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        f1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+      } else {
+        c1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+        f1 = ggplot(data = hold_data, aes(x = tSNE1, y = tSNE2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      }
+      
     } else if (data_type == "umap") {
-      c1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-      f1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      if (plot_legend) {
+        c1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        f1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+      } else {
+        c1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+        f1 = ggplot(data = hold_data, aes(x = UMAP1, y = UMAP2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      }
     } else if (data_type == "mds") {
-      c1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
-      f1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      if (plot_legend) {
+        c1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        f1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+      } else {
+        c1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = cluster)) + geom_point(color = cluster_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+        f1 = ggplot(data = hold_data, aes(x = MDS1, y = MDS2, color = feature)) + geom_point(color = feature_colors) + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "bottom")
+      }
+      
     }
     if (data_type == "pca") {
       gridExtra::grid.arrange(grobs = list(c1,f1,c2,f2,c3,f3), nrow = 3, ncol = 2, main = "DBSCAN Clustering of PCA")
