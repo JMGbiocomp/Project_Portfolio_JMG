@@ -98,8 +98,7 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     }
     
     par(mfrow = c(1,1))
-    temp = subset(pca_loading, abs(pca_loading[,1]) > load_threshold | abs(pca_loading[,2]) > load_threshold | abs(pca_loading[,3]) > load_threshold)
-    analysisLoadings(pca_object = pca_object, species_labels = rownames(temp), npcs = target_PCs)
+    analysisLoadings(pca_object = pca_object, species_labels = rownames(data_object), npcs = target_PCs)
     par(mfrow = c(1,1))
     
     outliers = unique(c(index_LOF, index_RE, LOD1, LOD2, LOD3)) # indexes of global and local outliers detected by RE and LOF
@@ -112,10 +111,15 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     # Analytical Plots
     gridExtra::grid.arrange(grobs = list(s1,s2,s3,o1,o2,o3), nrow = 2, ncol = 3, top = "Mapping Outliers by RE, LOF and Mahalanobis Distance") # Evaluating outliers against data in reduced space
     gridExtra::grid.arrange(grobs = list(s1,s2,s3,l1,l2,l3), nrow = 2, ncol = 3, top = "PCA Scores and Loadings") # Viewing species that meet load threshold for 2D score plots
+    
+    # Species to return
+    temp = as.data.frame(pca_loading)
+    temp$mean_load = rowSums(pca_loading)
+    temp$absolute_load = rowSums(abs(pca_loading))
   }                                                                                                                                                                                                                                                           
   
   if (data_return & plot_data) {
-    return(rownames(temp))
+    return(temp)
   } else if (data_return) {
     return(pca_object)
   } else {

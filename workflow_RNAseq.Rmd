@@ -450,7 +450,7 @@ So far unsupervised learning hasn't extended beyond a global level analysis of t
 
 ## Principal Component Analysis At the Core
 
-Because PCA is a linear technique, the contribution of species to the variance at the feature level can be traced.  This aspect alone makes PCA an extremely powerful tool and the backbone of most unsupervised learning pipelines for gene expression analysis.  Not only does the output therefore provide insights for interpretation at the species level but also can serve as input for the other DR techniques with subsequent to clustering, same as the feature analysis.  The connection between the DR of the features and species is maintained, thus provides a beautifully complimentary analytic approach. Lets first look at a comprehensive PCA analysis before following up for a complete unsupervised learning pipeline to discover species of interest within the data.  A comparison of the results may reveal why or why not PCA is enough.  
+Because PCA is a linear technique, the contribution of species to the variance at the feature level can be traced.  This aspect alone makes PCA an extremely powerful tool and the backbone of most unsupervised learning pipelines for gene expression analysis.  Not only does the output therefore provide insights for interpretation at the species level but also can serve as input for the other DR techniques with subsequent to clustering, same as the feature analysis.  The connection between the DR of the features and species is maintained, thus provides a beautifully complimentary analytic approach. Lets first look at two PCA analysis tools before following up with a complete unsupervised learning pipeline to discover species of interest within the data.  A comparison of the results may reveal why or why not PCA is enough.  
 
 ### EA6 Code Chunk
 
@@ -463,11 +463,34 @@ IS_PCA_QC = analysisPCA(data_object = RNAseqCounts_vst[,-remove_samples], featur
 IS_PCA 
 IS_PCA_QC
 
+# identify important species using the distribution of contribution to variance across species
+target_sepcies_base = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11)
+length(target_sepcies_base)
+target_species_directional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, top_return = FALSE)
+length(target_species_directional)
+target_species_nondirectional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, d_return = FALSE, top_return = FALSE)
+length(target_species_nondirectional)
+target_species_top = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, nd_return = FALSE, top_pc = c(1,3))
+length(target_species_top)
+target_species_counter = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, nd_return = FALSE, top_pc = c(2))
+length(target_species_counter)
+
+target_species_top
+target_species_counter
+
+# clear Memory
+rm()
 ```
 
 ## EA6 Discussion
 
+analysisPCA: 
 This comprehensive tool offer several different features, removal the the "noise" variance (previous found), detection of global and local anomalies using three different metrics, analysis of species contributions to identified "true" variance, and final comparative visualizations to aid in the analysis.  Multiple metrics for anomaly detection are included to account for global and local detection as well as these methods are not universally absolute.  Reconstruction errors and local outlier factors are easy to interpret only when extreme.  Mahalanobis distance is useful but only when the structure of the data within the dimensions of interest fits a general circular shape and loses its usefulness when data clusters in irregular or elliptical shapes.  Some of these of issues can be mitigated by visualizing anomaly placement within the dimensional space but this isn't always the case.  That being said we are able to recognize how samples identified with higher LOF may indeed be anomalies worth removing based on the visualization of the first 3 PCs.  A rationale could be to remove any samples that reasonably breaks from the observable pattern of the feature groups from these plots.  This would be a very conservative approach to sample QC and acceptable considering how many samples there are per group and how few the identified anomalies are.  Run a second time with identified samples removed (index: ) we can see the effect.  Because of how these anomaly detection metrics are calculated and identified, subsequent execution will identify new samples as potential outliers.  Although an iterative process does reveal information about the structure of the data, it is only recommended for advanced users with specific goals in mind.  
+
+The species identification using this tool is also very conservative to its contribution to the structure of the data.  It is limited to just the first 3 (top) PCs of the data and a specific absolute load threshold value is chosen.  This threshold is chosen by the user and therefore most strongly influenced by the structure of the PC loading plots rather than a statistical measure.  The dependency on the visualization itself as well as assumptions made by the user makes it both powerful and potentially misleading.  Although in practice this shoudl result in limited identification of species and they will be major contributors to the top 3 principal components, the dimensions housing the greatest variance of the data, the problem is this apporach to it is not adhereing to an "unsupervised" approach.  It is more accurately a supervised last step to determining the species of interest, which is not inherently wrong but break awahy from the overall approach itself.  To approach species identification more true unsupervised learning the next tool is better suited, "filterLoadings()". 
+
+filterLoadings:
+This tool's functionality includes capturing the species with the most relevent directional or non-directional average contributions to variance as well as the targeting a subset of principal components of interest for a total of three different criterias applied to extract species of interest. Each are controlled independently along withe their distribution thresholds.  Although the same supervision could be applied here, these threshold can be set to capture species fitted to a specified probability rather than the look of the distribution. Becuase different schools of thought place different priority on directional vs non-directional loading as well as the value of targeting specific PCA dimensions, the level of control over the the direction of the unsupervised process is powerful for analysis.  Several different avenues can be explored downstream and validated.  A demonstration of this usefulness the function's functionality is with the two returned species lists from PCs 1 and 3 vs PC 2.  A quick search from these results shows the species identified from PC2 are not obviously related to the biology of interest compared to the species returned from PC 1 and 3, which matches the PC scores presented by the analysisPCA function. 
 
 ## Leveraging the Lineararity of PCA: An Example using UMAP
 
@@ -517,7 +540,7 @@ plot(color_branches(dend_umap_species, k = 3)) # view dendrogram with the optima
 
 ## EA8 Discussion
 
-Because of the spatial embedding of the data within the reduced dimensional space, K-means clustering is unlikely the best method.  Because of the amount of overlay between the species within the space, density-based clustering may best capture subtleties unseen by the previous visualization.   
+Because of the spatial embedding of the data within the reduced dimensional space, K-means clustering is unlikely the best method.  Judging by the amount of overlay between the species within the space, density-based clustering may best capture subtleties unseen by the previous visualization.   
 
 # Supervised Learning 
 
@@ -530,27 +553,66 @@ A fundamental supervised learning method is differential expression analysis in 
 ``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 dds = DESeq(deSEQ)
-res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
+res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01, altHypothesis = "greaterAbs")
 DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
 colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_CvsS) = rownames(res_CvsS)
 DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
-DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.1,]
+#DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.01,]
 
-res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 0.5, alpha = 0.01)
+res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 1, alpha = 0.01)
 DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
 colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_CvsL) = rownames(res_CvsL)
 DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
-DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.1,]
+#DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.01,]
 
-res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 0.5, alpha = 0.01)
+res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
 DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
 colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_LvsS) = rownames(res_LvsS)
 DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
-DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.1,]
+#DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.01,]
 
+plot(x = DEGresults_CvsL$L2FC, y = -log10(DEGresults_CvsL$padj))
+plot(x = DEGresults_CvsL$L2FC, y = -log10(DEGresults_CvsL$pvalue))
+
+plot(x = res_CvsL$log2FoldChange, y = -log10(res_CvsL$pvalue))
+plot(x = res_CvsS$log2FoldChange, y = -log10(res_CvsS$pvalue))
+plot(x = res_LvsS$log2FoldChange, y = -log10(res_LvsS$pvalue))
+
+samples_CvsS = which(sample_metaData$infection == "Non-infected" | sample_metaData$infection == "Salmonella")
+samples_C = which(sample_metaData$infection == "Non-infected")
+samples_S = which(sample_metaData$infection == "Salmonella")
+hist(x = res_CvsS$pvalue)
+hist(x = c(t(RNAseqCounts["WASH7P",samples_CvsS])))
+hist(x = c(t(RNAseqCounts["WASH7P",samples_C])))
+hist(x = c(t(RNAseqCounts["WASH7P",samples_S])))
+
+hist(x = c(t(RNAseqCounts["MIR6859-1",samples_CvsS])))
+hist(x = c(t(RNAseqCounts["MIR6859-1",samples_C])))
+hist(x = c(t(RNAseqCounts["MIR6859-1",samples_S])))
+
+hist(x = c(t(RNAseqCounts["LINC02593",samples_CvsS])))
+hist(x = c(t(RNAseqCounts["LINC02593",samples_C])))
+hist(x = c(t(RNAseqCounts["LINC02593",samples_S])))
+
+hist(x = c(t(RNAseqCounts["PLEKHN1",samples_CvsS])))
+hist(x = c(t(RNAseqCounts["PLEKHN1",samples_C])))
+hist(x = c(t(RNAseqCounts["PLEKHN1",samples_S])))
+
+hist(x = c(t(RNAseqCounts["LOC107985728",samples_CvsS])))
+hist(x = c(t(RNAseqCounts["LOC107985728",samples_C])))
+hist(x = c(t(RNAseqCounts["LOC107985728",samples_S])))
+
+
+
+plot(x = DEGresults_LvsS$log2FoldChange, y = DEGresults_LvsS$baseMean)
+hist(x = DEGresults_LvsS$pvalue)
+
+plot(x = abs(DEGresults_CvsS$L2FC), y = abs(DEGresults_CvsS$stat))
+
+plotDispEsts(dds)
 ```
 
 ### DEG Discussion 
