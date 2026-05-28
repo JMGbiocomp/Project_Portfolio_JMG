@@ -10,7 +10,11 @@
 # dependencies:
   # stats
 
-analysisLOD = function (data_object, feature_labels, sd_count = 3) {
+analysisLOD = function (data_object = NULL, feature_labels = NULL, sd_count = 3) {
+  # errors, warnings, and messages
+  if (is.null(data_object)) {stop("Must provide a matrix-like data structure with feature of interest matching rows.")}
+  if (is.null(feature_labels)) {stop("Must provide a vectors of feature labels of length matching the number of rows of the data_object.")}
+  
   par(mfrow = c(1,3))
   hold_data = as.data.frame(data_object)
   hold_data$features = feature_labels

@@ -3,7 +3,9 @@
 # arguments:
   # data_object = a matrix-like data structure of raw count data from high-throughput sequencing
 
-normCPM = function (data_object) {
+normCPM = function (data_object = NULL) {
+  # errors, warnings and messages
+  if (is.null(data_object)) {stop("must provide a matrix-like data structure with features in columns and species in rows.")}
   
   cpm_object = data.frame(matrix(0,nrow=dim(data_object)[1],ncol=dim(data_object)[2])) # define normalized data object structure
   rownames(cpm_object) = rownames(data_object) # copy species names

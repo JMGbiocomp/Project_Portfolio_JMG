@@ -12,11 +12,22 @@
   # data_return = logical value to determines if the pca object is returned; default set to FALSE
   # load_threshold = numeric value between 0 and 1 as a cut off for magnitudinal direction of pca loadings; default set to 0.5 (recommend evaluating loading plots prior to adjusting)
   # noise_filter = numeric value between 0 and 1 as the percentage of variance to capture from included PCs in analysis and filter the remaining variance as noise; default set to 0.8 (recommended 0.7-0.9)
+  # verbose = logical vector to define verbosity of function to communicate with the user at the command console
 # Dependencies:  
   # stats, ggplot2, gridExtras
 
-analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, noise_filter = 0.8) {
-  # Flags and errors
+analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, noise_filter = 0.8, verbose = FALSE) {
+  # Errors, warnings, and messages
+  if (is.null(data_object)) {stop("Must provide a matrix-like data structure with feature of interest in rows for PCA.")}
+  if (is.null(feature_labels)) {stop("Must provide a vector of feature labels of length equal to the number of rows in the data_object.")}
+  if (verbose) {
+    message(paste("Center data:",center_data))
+    message(paste("Scale date:",scale_data))
+    message(paste("Plot data:",plot_data))
+    message(paste("Return data:",data_return))
+    message(paste("Threshold of PC laoding cutt off is",load_threshold))
+    message(paste("Threshold of total varaince to treat as noise:",(noise_filter*100),"%"))
+  }
   
   # perform PCA
   pca_object = stats::prcomp(t(data_object), center = center_data, scale. = scale_data)
@@ -123,7 +134,7 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
   } else if (data_return) {
     return(pca_object)
   } else {
-    message("data_return arg default: no data returned")
+    message("data_return argument set to default with no data returned")
   }
 }
                                                                                      

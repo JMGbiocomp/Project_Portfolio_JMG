@@ -13,10 +13,16 @@
   # stats
 
 objectHCLUST = function (data_object, feature_labels, usage = "features", dist_calculation = "euclidean", linkage_method = "average", return_object = "hclust", dend_plot = FALSE) {
+  # errors, warnings, and messages
+  if (is.null()) {stop("must provide a matrix-like data structure with features in columns and species in rows.")}
+  if (is.null()) {stop("must provide a vector of length equal to the feature of interest within data_object.")}
+  
   # flow control to determine data structure needed for creating hclust object
   if (usage == "features") {
+    if (dim(data_object)[2] != length(feature_labels)) {stop("feature labels must be the same length as the number of features in data_object.")}
     hold_data = t(data_object) # features in rows
   } else if (usage == "species" | usage == "reduced") {
+    if (dim(data_object)[1] != length(feature_labels)) {stop("feature labels must be the same length as the number of species in data_object.")}
     hold_data = data_object # species or target of interest from dimesnionality reduction in rows
   }
   

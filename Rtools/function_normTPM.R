@@ -8,7 +8,15 @@
   # col_name = column name containing the gene length (by base)
   # base_unit = number used to convert the gene length value to kilobase; default set to 1000 and used when value is in nucleotide base unit of measure
 
-normTPM = function (count_data, gene_data, col_name, base_unit = 1000) {
+normTPM = function (count_data = NULL, gene_data = NULL, col_name = NULL, base_unit = 1000, verbose = FALSE) {
+  # errors, warnings, and messages
+  if (is.null(count_data)) {stop("Must provide a matrix-like data structure of count data with features (samples) in columns and species in rows.")}
+  if (is.null(gene_data)) {stop("Must provide a matrix-like data structure of species meta data with features in columns and species in rows.")}
+  if (is.null(col_name)) {stop("Must provide a column name within gene_data argument containing the base pair length per species.")}
+  if (dim(count_data)[1] != dim(gene_data)[1] & rownames(count_data) != rownames(gene_data)) {stop("Species labels and number must between the count_data and gene_data arguments.")}
+  if (verbose) {message(paste("Normalization produced is done by a base unit factor or",base_unit))}
+  
+  # flow control to convert the count data into transcripts per million (TPM)
   new_data = count_data
   for (i in 1:dim(count_data)[1]) {
     new_data[i,] = new_data[i,]/(gene_data[rownames(new_data)[i],col_name]/base_unit) 

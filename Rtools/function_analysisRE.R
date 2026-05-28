@@ -10,7 +10,11 @@
 # dependencies:
   # stats
 
-analysisRE = function (data_object, pca_object, npc = 50) {
+analysisRE = function (data_object = NULL, pca_object = NULL, npc = 50) {
+  # errors, warnings, and warning 
+  if (is.null(data_object)) {stop("Must provide a matrix-like object with features in calumns and sopecies in rows.")}
+  if (is.null(pca_object)) {stop("Must provide the pca object from the output of the stats prcomp() function on the data_object.")}
+  
   # reconstruct data and calculate reconstrcution error
   recon_data = t(t(pca_object$x[, 1:npc] %*% t(pca_object$rotation[, 1:npc])) * pca_object$scale + pca_object$center) # reconstructed data from PCA
   errors = (data_object - recon_data)^2 # error matrix (difference^2)

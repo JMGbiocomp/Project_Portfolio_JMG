@@ -8,10 +8,19 @@
   # k_range = two element numeric vector that provides the range of minimum number of neighbors to evaluate density
   # plot_return = logical value to determine if the LOF scores by feature are visualized for analysis
   # data_return = character value to determine what is returned: ("none", "lof", "index"); "lof" returns the average LOF scores per feature while "index" returns the index of features that exceed the 2 SD threshold; default set to "none" 
+  # verbose = logical vector to define verbosity of function to communicate with the user at the command console
 # dependencies:
   # stats, dbscan
 
-analysisLOF = function (data_object, k_range = c(10,20), plot_return = FALSE, data_return = "none") {
+analysisLOF = function (data_object = NULL, k_range = c(10,20), plot_return = FALSE, data_return = "none", verbose = FALSE) {
+  # errors, warnings, and messages
+  if (is.null(data_object)) {stop("Must provide a matrix-like data structure with feature of interest in rows.")}
+  if (length(k_range) != 2) {stop("Must provide a vector of length 2 with integers as elements for k_range argument.")}
+  if (verbose) {
+    message(paste("Range of minumum number of neighbors to investigate, between", k_range[1], "and",k_range[2]))
+    message(paste("Plot return:", plot_return))
+    message(paste("Date return:", data_return))
+  }
   lof_average = c(0) # hold the average LOF score per feature
   # flow control to calculate the LOF across the a range of k values
   index = 0

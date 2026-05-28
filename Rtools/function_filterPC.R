@@ -4,8 +4,13 @@
 # argument:
   # pca_object = a pca object created by the prcomp() function
   # variance_percent = numeric value for the the percentage of total variance to target as a decimal 
+  # verbose = logical vector to define verbosity of function to communicate with the user at the command console
 
-filterPC = function (pca_object, variance_percent = 0.8) {
+filterPC = function (pca_object = NULL, variance_percent = 0.8, verbose = FALSE) {
+  # errors, warnings, and messages
+  if (is.null(pca_object)) {stop("must provide a prcomp object as a pca_object.")}
+  if (verbose) {message(paste("Total variance to capture,",(variance_percent*100),"%"))}
+  
   max_variance = variance_percent*sum(pca_object$sdev^2) # total variance across all PCs
   pc_variance = pca_object$sdev^2 # calculated variance per PC
   pc_data = as.data.frame(cbind(c(1:length(pc_variance)), c(0))) # build data frame for calculating cumulative variance acorss PCs

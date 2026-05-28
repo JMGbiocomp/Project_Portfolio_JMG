@@ -10,7 +10,11 @@
   # stats
 
 
-analysisMahalabonis = function (data_object, feature_labels) {
+analysisMahalabonis = function (data_object = NULL, feature_labels = NULL) {
+  # errors, warnings, and messages
+  if (is.null(data_object)) {stop("Must provide a matrix-like data structure with features in rows and dimensional cooridnates in rows.")}
+  if (is.null(feature_labels)) {stop("Must provide a vector of labels for the feature of interest of equal length to the number of rows in the data_object.")}
+  
   # configure data with key elements for visualization and returning feature indexes 
   hold_data = as.data.frame(data_object) # build data frame
   hold_data$features = feature_labels # add feature labels

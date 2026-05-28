@@ -9,12 +9,22 @@
   # linkage_methods = character vector of linkage methods to analyze correlations between them; default is set to include all linkage methods: "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", and "centroid"
   # correlation_method = the correlation coefficient metric to calculate and define the matrix; default is set to cophenetic coeffcient but other options include "baker", "common_nodes", and "FM_index"
   # display_type = controls waht type of visual representation of the correlation is produced: "circle", "square", "ellipse", "number", "shade", "color", "pie"; default is set to "pie" 
+  # verbose = logical vector to define verbosity of function to communicate with the user at the command console
 # dependencies
   # dendextend, corrplot
 
-analysisHCLUSTCorrelation = function (data_object, feature_labels, usage = "features", dist_calculation = c("euclidean", "manhattan", "pearson", "spearman"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), correlation_method = "cophenetic", display_type = "pie") {
+analysisHCLUSTCorrelation = function (data_object = NULL, feature_labels = NULL, usage = "features", dist_calculation = c("euclidean", "manhattan", "pearson", "spearman"), linkage_methods = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid"), correlation_method = "cophenetic", display_type = "pie", verbose = FALSE) {
   # errors and flags
-  
+  if (is.null(data_object)) {stop("Must provide a matrix-like data structure with features in columns and species in rows.")}
+  if (is.null(feature_labels)) {stop("Must provide a vector of species labels for determining the minimum threshold.")}
+  if (usage == "features" & dim(data_object)[2] != length(feature_labels)) {stop("feature_labels length must match the number of columns in the data_object.")}
+  if (dim(data_object)[2] != length(feature_labels) & (usage == "species" | usage == "reduced")) {stop("feature_labels length must match the number of rows in the data_object.")}
+  if (verbose) {
+    message(paste("Distance calcualtion mehtods under consideration:",dist_calculation))
+    message(paste("Linkage methods under consideration:",linkage_methods))
+    message(paste("Correlation method used:",correlation_method))
+    message(paste("COrrplot display type:",display_type))
+  }
   
   dend_list = dendlist() # empty dendlist object\
   label_names = c()

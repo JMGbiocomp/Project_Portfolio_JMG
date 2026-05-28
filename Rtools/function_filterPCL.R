@@ -13,6 +13,12 @@
   # stats
 
 filterPCL = function (pca_object, species_labels, npcs, std_cutoff = 2, plot_labels = FALSE, return_data = "joint") {
+  # errors, warnings, and messages
+  if(is.null(pca_object)) {stop("Must provide a prcomp object as a pca_object.")}
+  if(is.null(species_labels)) {stop("Must provide species labels matching the rows of the PC loadings wihtin the pca_object.")}
+  if(is.null(npcs)) {stop("Must provide the total number of PCs to frame the variance contribution of the species.")}
+  warning(paste("Critical loading value determined by",std_cutoff,"standard deviations within the distribution."))
+  
   pc_loadings = as.data.frame(pca_object$rotation[,1:npcs]) # extracted PC laoding data for the number of defined PCs
   species_names = species_labels # names of species
   species_index = 1:length(species_names) # species index in original data set
