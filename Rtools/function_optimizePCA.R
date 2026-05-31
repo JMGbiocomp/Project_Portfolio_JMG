@@ -20,31 +20,50 @@ optimizePCA = function (data_object, feature_labels, usage = "features", return_
   } else if (usage == "species") {
     hold_data = data_object
   }
-  
   pca_object = prcomp(x = hold_data, center = center_data, scale. = scale_data) # PCA object
   target_PCs = filterPC(pca_object = pca_object, variance_percent = total_variance) # find total PC needed to include the user defined total variance of the original data
   stats::screeplot(pca_object, type = "lines", npcs = target_PCs, main = "Contribution to Variance by Principal Components", pch = 16) # screeplot to visualize the variance distribution of included PCs
   title(xlab = "Principal Components")
-  
   # flow control for visualizing the top 3 PCs 2D plots
   if (plot_data) {
     plot_data = as.data.frame(pca_object$x[,1:3])
     colnames(plot_data) = c("PC1", "PC2", "PC3")
-    plot_data$features = feature_labels
-     if (usage == "features") {
-       set.seed(1)
-       plot_data$feature_colors = colorCode(feature_data = feature_labels, color_replace = FALSE)
-       p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
-       p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
-       p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
-       gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
-     } else if (usage == "species") {
-       species_colors = colorCode(feature_data = feature_labels, color_replace = TRUE)
-       p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-       p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-       p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
-       gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
-     }
+    if (mode(feature_labels) == "list") {
+      for (f in 1:length(feature_labels)) {
+        feature = c(feature_labels[[f]])
+        plot_data$features = feature
+        if (usage == "features") {
+          set.seed(1)
+          plot_data$feature_colors = codeColor(feature_data = feature, color_replace = FALSE)
+          p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+          p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+          p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+          gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
+        } else if (usage == "species") {
+          species_colors = codeColor(feature_data = feature, color_replace = TRUE)
+          p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+          p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+          p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+          gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
+        }
+      }
+    } else {
+      plot_data$features = feature_labels
+      if (usage == "features") {
+        set.seed(1)
+        plot_data$feature_colors = codeColor(feature_data = feature_labels, color_replace = FALSE)
+        p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+        p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+        p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = factor(features))) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "top",legend.title = element_blank(),legend.text = element_text(size = 8))
+        gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
+      } else if (usage == "species") {
+        species_colors = codeColor(feature_data = feature_labels, color_replace = TRUE)
+        p1 = ggplot(data = plot_data, aes(x = PC1, y = PC2, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        p2 = ggplot(data = plot_data, aes(x = PC1, y = PC3, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        p3 = ggplot(data = plot_data, aes(x = PC2, y = PC3, color = species_colors)) + geom_point() + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+        gridExtra::grid.arrange(grobs = list(p1,p2,p3), nrow = 1, ncol = 3, main = "Plots of Top 3 Principal Components")
+      }
+    }
   }
   
   # flow control to return PCA object

@@ -5,7 +5,7 @@
 #
 
 
-package_list = c("ggplot2", "gridExtra","data.table")
+package_list = c("ggplot2", "gridExtra","data.table","DESeq2")
 PackageDependency(package_list)
 # packages
 library("ggplot2", "gridExtra","data.table")

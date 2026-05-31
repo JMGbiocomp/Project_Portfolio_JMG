@@ -48,11 +48,11 @@ optimizeDBSCAN = function (data_object, feature_labels, data_type = "pca", usage
       feature_colors = codeColor(feature_labels, color_replace = sample_replace)
       if (data_type == "pca") {
         plot(x = hold_data[,1], y = hold_data[,2], col = feature_colors, xlab = "PC1", ylab = "PC2", main = paste("eps:",n_size[i],"minPts:",min_points[i]), cex = 1, pch = cluster_symbols)
-        legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = unique(cluster_symbols), bty = "n")
+        legend("bottomleft", legend = unique(feature_labels), col = unique(feature_colors), pch = unique(cluster_symbols), bty = "n")
         plot(x = hold_data[,1], y = hold_data[,3], col = feature_colors, xlab = "PC1", ylab = "PC3", main = paste("eps:",n_size[i],"minPts:",min_points[i]), cex = 1, pch = cluster_symbols)
-        legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = unique(cluster_symbols), bty = "n")
+        legend("bottomleft", legend = unique(feature_labels), col = unique(eature_colors), pch = unique(cluster_symbols), bty = "n")
         plot(x = hold_data[,2], y = hold_data[,3], col = feature_colors, xlab = "PC2", ylab = "PC3", main = paste("eps:",n_size[i],"minPts:",min_points[i]), cex = 1, pch = cluster_symbols)
-        legend("bottomleft", legend = unique(feature_labels), col = feature_colors, pch = unique(cluster_symbols), bty = "n")
+        legend("bottomleft", legend = unique(feature_labels), col = unique(feature_colors), pch = unique(cluster_symbols), bty = "n")
       } else {
         plot(x = hold_data[,1], y = hold_data[,2], col = feature_colors, main = paste("minPts:", min_points[i],"-eps:", n_size[i]), cex = 1, pch = cluster_symbols, )
         if (plot_legend) {

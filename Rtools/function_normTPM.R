@@ -13,7 +13,7 @@ normTPM = function (count_data = NULL, gene_data = NULL, col_name = NULL, base_u
   if (is.null(count_data)) {stop("Must provide a matrix-like data structure of count data with features (samples) in columns and species in rows.")}
   if (is.null(gene_data)) {stop("Must provide a matrix-like data structure of species meta data with features in columns and species in rows.")}
   if (is.null(col_name)) {stop("Must provide a column name within gene_data argument containing the base pair length per species.")}
-  if (dim(count_data)[1] != dim(gene_data)[1] & rownames(count_data) != rownames(gene_data)) {stop("Species labels and number must between the count_data and gene_data arguments.")}
+  if (dim(count_data)[1] != dim(gene_data)[1]) {stop("Species labels and number must between the count_data and gene_data arguments.")}
   if (verbose) {message(paste("Normalization produced is done by a base unit factor or",base_unit))}
   
   # flow control to convert the count data into transcripts per million (TPM)

@@ -6,23 +6,23 @@
   # color_replace = override control for replacement function of sampling
 
 codeColor = function (feature_data, color_replace = FALSE) {
-  factors = unique(feature_data)
+  feature_factors = unique(feature_data)
   distinct_colors = c("black","darkgrey","red","blue","steelblue","orange","violet","lightgreen","magenta","darkred")
-  if (length(factors) <= length(distinct_colors)) {
-    color_code = sample(x = distinct_colors, size = length(factors), replace = color_replace)
+  if (length(feature_factors) <= length(distinct_colors)) {
+    color_code = sample(x = distinct_colors, size = length(feature_factors), replace = color_replace)
   } else {
     color_choices = colors(distinct = TRUE)
-    if (length(factors) > length(color_choices)) {
-      color_code = sample(x = color_choices, size = length(factors), replace = TRUE)
+    if (length(feature_factors) > length(color_choices)) {
+      color_code = sample(x = color_choices, size = length(feature_factors), replace = TRUE)
     } else {
-      color_code = sample(x = color_choices, size = length(factors), replace = color_replace)
+      color_code = sample(x = color_choices, size = length(feature_factors), replace = color_replace)
     }
   }
   color_match = c()
   
   for (i in 1:length(feature_data)) {
-    for (c in 1:length(color_code)) {
-      if (feature_data[i] == factors[c]) {
+    for (c in 1:length(feature_factors)) {
+      if (feature_data[i] == feature_factors[c]) {
         color_match = c(color_match, color_code[c])
       } 
     }

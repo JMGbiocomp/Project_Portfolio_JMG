@@ -5,10 +5,12 @@
 # No arguments needed 
 
 source("Rtools/function_PackageDependency.R")
-package_list = c("Biobase", "BioGenerics", "generics", "stats", "SummarizedExperiment")
+package_list = c("Biobase", "BioGenerics", "generics", "stats", "SummarizedExperiment","R.utils")
 PackageDependency(package_list)
+
 library(Biobase)
 library(BiocGenerics)
 library(generics)
 library(SummarizedExperiment)
 library(stats)
+library(R.utils)

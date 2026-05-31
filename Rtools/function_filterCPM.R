@@ -29,6 +29,6 @@ filterCPM = function (data_object = NULL, feature_labels = NULL, verbose = TRUE)
     }
   }
   filtered_species = dim(data_object)[1] - length(keep_index)
-  if (vebose) {message(paste("Low count filtering by CPM removed",filtered_species, "species from the data set."))}
+  if (verbose) {message(paste("Low count filtering by CPM removed",filtered_species, "species from the data set."))}
   return(data_object[keep_index,])
 }

@@ -4,7 +4,7 @@
 # Includes hierarchical clustering, PCA, and 
 #
 
-package_list = c("dendextend", "corrplot", "rgl", "PoiClaClu","ggrepel", "ggpubr","umap","Rtsne","dbscan","DESeq2")
+package_list = c("dendextend", "corrplot", "rgl", "PoiClaClu","ggrepel", "ggpubr","umap","Rtsne","dbscan","DESeq2","MASS")
 PackageDependency(package_list)
 # packages
 library("dendextend")
@@ -17,6 +17,7 @@ library("umap")
 library("Rtsne")
 library("dbscan")
 library("DESeq2")
+library("MASS")
 #library()
 
 # tools
@@ -35,7 +36,7 @@ source("Rtools/function_analysisRE.R")
 source("Rtools/function_analysisPCA.R")
 
 source("Rtools/function_analysisVariance.R")
-source("Rtools/function_analysisTree.R")
+source("Rtools/function_analyzeTree.R")
 source("Rtools/function_filterPC.R")
 source("Rtools/function_filterPCL.R")
 source("Rtools/function_filterVariance.R")

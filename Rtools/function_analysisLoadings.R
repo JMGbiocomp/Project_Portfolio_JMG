@@ -10,8 +10,8 @@
 
 analysisLoadings = function (pca_object = NULL, species_labels = NULL, npcs = NULL) {
   # errors, warnings, and messages
-  if (is.null(data_object)) {stop("Must provide a prcomp object for the pca_object argument.")}
-  if (is.null(feature_labels)) {stop("Must provide a vector of species labels matching the first dimension of the reduced data in the PCA object.")}
+  if (is.null(pca_object)) {stop("Must provide a prcomp object for the pca_object argument.")}
+  if (is.null(species_labels)) {stop("Must provide a vector of species labels matching the first dimension of the reduced data in the PCA object.")}
   if (is.null(npcs)) {stop("Must provide an integer for the number of PCs to inlcude in the PCA loading analysis.")}
   
   load_data = pca_object$rotation[,1:npcs]

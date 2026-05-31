@@ -10,9 +10,9 @@
 # dependencies:
   # UMAP
 
-optimizeUMAP = function (data_object, feature_varaible, usage = "neighbors", neighbors = c(5, 10, 15, 25, 50, 100), min_distance = c(0.05, 0.1, 0.25, 0.5, 0.75, 0.95), iterations = c(100, 200, 300, 500, 700, 1000), display_legend = FALSE) {
+optimizeUMAP = function (data_object, feature_variable, usage = "neighbors", neighbors = c(5, 10, 15, 25, 50, 100), min_distance = c(0.05, 0.1, 0.25, 0.5, 0.75, 0.95), iterations = c(100, 200, 300, 500, 700, 1000), display_legend = FALSE) {
   
-  point_colors = codeColor(feature_data = feature_varaible)
+  point_colors = codeColor(feature_data = feature_variable)
   
   if (usage == "neighbors") {
     par(mfrow = c(abs(length(neighbors)/2), 2))
@@ -39,7 +39,7 @@ optimizeUMAP = function (data_object, feature_varaible, usage = "neighbors", nei
         for (i in iterations) {
           u_object = umap(d = data_object, method = "naive", n_neighbors = n, min_dist = d, n_epochs = i)
           plot(x = u_object$layout[,1], y = u_object$layout[,2], col = point_colors, xlab = "UMAP1", ylab = "UMAP2", cex = 1, pch = 16, main = paste("N_neighbors:", neighbors, "min_dist:", min_distance, "n_epoch:", iterations))
-          if (display_legend) {legend("bottomleft", legend = unique(feature_varaible), col = point_colors, pch = 16, bty = "n")}
+          if (display_legend) {legend("bottomleft", legend = unique(feature_variable), col = unique(point_colors), pch = 16, bty = "n")}
         }
       }
     }

@@ -65,9 +65,11 @@ rownames(RNAseqCounts) = c(gene_metaData$Symbol)
 rownames(gene_metaData) = c(gene_metaData$Symbol)
 sample_metaData$ancestry_ID = ancestry_table$ancestry_ID
 sample_metaData$ancestry = codeLabel(feature_labels = c(sample_metaData$ancestry_ID), label_pattern = c("AF","EU"), label_match = c("African","European"))
+sample_metaData$infection_ancestry = codeFeature(data_object = sample_metaData, feature_cols = c("infection","ancestry"))
 
 table(sample_metaData$ancestry)
 table(sample_metaData$infection)
+table(sample_metaData$infection_ancestry)
 
 # Remove unnecessary script elements
 rm(tbl, annot, sample_table, ancestary_table)
@@ -91,6 +93,7 @@ Research published out of the University of Chicago and uploaded by Luis Barreir
 # == pre-filter low count genes == #
 # keep genes with at least CPM = 1 in (# of samples in smallest experimental group) 
 RNAseqCounts = filterCPM(data_object = RNAseqCounts, feature_labels = c(sample_metaData$infection))
+gene_metaData = gene_metaData[rownames(RNAseqCounts),]
 # keep genes with at least 2 counts > 10
 #keep <- rowSums( RNAseqCounts >= 10 ) >= round(dim(sample_metaData)[1]*0.10)
 #table(keep)
@@ -104,8 +107,8 @@ RNAseqCounts_TPM = normTPM(count_data = RNAseqCounts, gene_data = gene_metaData,
 old_par = par(no.readonly = TRUE)
 
 par(mfrow = c(2,2))
-# data set too large to render as boxplot so sample indexes are sampled to show goodness of fit
-sample_sampling = sample(x = 1:503, size = 100) # first smapling
+# data set too large to render as box plot so sample indexes are sampled to show goodness of fit
+sample_sampling = sample(x = 1:503, size = 100) # first sampling
 print("Sample Indexes:")
 print(sample_sampling)
 boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
@@ -129,19 +132,15 @@ boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "
 
 # assessment of data quality by variance stability
 par(old_par)
-
+par(mfrow = c(1,2))
 # raw data
-analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data", data_return = "mds")
-summary_RAW = analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+summary_RAW = analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data Variance Stability", data_return = "summary")
 # TPM normalization
-analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "mds")
-summary_TPM = analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+summary_TPM = analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "summary")
 # log2 transformed raw data 
-analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "mds")
-summary_logRAW = analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+summary_logRAW = analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "summary")
 # log2 transformed TPM
-analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "mds")
-summary_logTPM = analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "summary", histogram = FALSE, scatter = FALSE)
+summary_logTPM = analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "summary")
 
 ## reorder tables by total variance 
 summary_RAW = summary_RAW[order(summary_RAW$variance, decreasing = TRUE),]
@@ -160,8 +159,8 @@ RNAseqCounts_TPM = log2(RNAseqCounts_TPM) + 1
 RNAseqCounts_TPM[RNAseqCounts_TPM == Inf | RNAseqCounts_TPM == -Inf] = 0 # remove Inf and -Inf values
 
 # Clear system memory
-rm(keep, sample_sampling)
-
+par(old_par)
+rm(sample_sampling)
 ```
 
 ## QC1 Discussion
@@ -179,8 +178,11 @@ To validate or refute use of TPM normalization and log2 transformation of the da
 
 library(DESeq2) # DESeq2 package contains robust normalization methods and differential expression worflow 
 rownames(sample_metaData) = colnames(RNAseqCounts) # add rownames to match column names in count matrix
-sample_metaData$infection = factor(sample_metaData$infection, levels = c("Non-infected", "Listeria", "Salmonella")) # convert feature varaible under analysis to factors to facilitate differential expression analysis
-deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection) # DEseq obejct
+# convert feature variable under analysis to factors to facilitate differential expression analysis
+sample_metaData$infection = factor(sample_metaData$infection, levels = c("Non-infected", "Listeria", "Salmonella")) 
+sample_metaData$ancestry = factor(sample_metaData$ancestry, levels = c("African","European"))
+sample_metaData$infection_ancestry = factor(sample_metaData$infection_ancestry, levels = c("Non-infected_African","Non-infected_European","Listeria_African","Listeria_European","Salmonella_African","Salmonella_European"))
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection + ancestry) # DEseq obejct
 deSEQ_vst = vst(deSEQ) # VST normalization of raw data
 RNAseqCounts_vst = assay(deSEQ_vst) # extract VST nromalized data
 
@@ -204,16 +206,13 @@ boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabi
 
 # Variance Stabilization
 par(mfrow = c(1,2))
-vst_varTable = varianceEval(RNAseqCounts_vst, plot_title = "VST Normalization", table_return = TRUE, scatter_return = TRUE)
-rownames(vst_varTable) = rownames(RNAseqCounts_vst)
-vst_varTable = vst_varTable[order(vst_varTable$variance, decreasing = TRUE),]
-
-# Compare SD vs Mean plots between VST and RPM normalization
-gridExtra::grid.arrange(MSDplot(logTPM_varTable, "log2 Transformed TPM Normalized Counts"), MSDplot(vst_varTable, "VST Normalization"), nrow = 1, ncol = 2, top = "SD vs Mean Plots: Comparing TPM and VST")
+summary_vst = analysisVariance(data_object = RNAseqCounts_vst, plot_title = "VST Normalization", data_return = "summary")
+summary_vst = summary_vst[order(summary_vst$variance, decreasing = TRUE),]
+head(summary_vst, n = 10)
 
 # clear system memory
+par(old_par)
 rm(sample_sampling)
-
 ```
 
 ## QC2 Discussion
@@ -239,11 +238,13 @@ source("Rtools/load_exploratoryAnalysis.R")
 # Cophenetic correlation coefficient to evaluate global accuracy of hclust object structure for combinations of distance calculations and linkage methods
 # Limits of cophenetic correlation coefficients can be mitigated by correlation plots between them
 
-cophTable = analysisCophenetic(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection)) # combinatorial evaluation of cophenetic correlation coefficients
+cophTable = analysisCophenetic(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry)) # combinatorial evaluation of cophenetic correlation coefficients
 cophTable
-analysisHclustCor(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection)) # correlations between these different combinations
-dend_vst = objectHCLUST(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), return_object = "dend", dend_plot = TRUE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_vst, leaf_count = 8, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+
+par(old_par)
+analysisHclustCor(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry),dist_calculation = c("euclidean","pearson")) # correlations between these the best distance calculation methods
+dend_vst = objectHCLUST(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry), return_object = "dend", dend_plot = TRUE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_vst, leaf_count = 10, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_vst, k = 6)) # view dendrogram with the optimal number of leaves to capture the biology
 
 # clear system memory 
@@ -267,40 +268,41 @@ Now, lets look at several different DR tools for the following DR techniques: PC
 par(old_par)
 
 # PCA
-pca_vst = optimizePCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), total_variance = 0.8)
-plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection), axes = c(1,4), axes_labels = c("PC1", "PC4"))
+pca_vst = optimizePCA(data_object = RNAseqCounts_vst, feature_labels = list(c(sample_metaData$infection),c(sample_metaData$ancestry)), total_variance = 0.8)
+pca_vst = optimizePCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry), total_variance = 0.8)
+plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry), axes = c(1,4), axes_labels = c("PC1", "PC4"))
 
 par(old_par)
 # tSNE hyper parameter tuning
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "perplexity")
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "iterations", neighbors = 75)
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "check", neighbors = 75, iterations = 6*50)
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection_ancestry), usage = "perplexity")
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection_ancestry), usage = "iterations", neighbors = 75)
+optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection_ancestry), usage = "check", neighbors = 75, iterations = 6*50)
 tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 75, max_iter = 6*50, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
 
 par(old_par)
 # UMAP hyper parameter "tuning"
 set.seed(1)
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "neighbors")
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.25, iterations = 300, display_legend = TRUE)
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_variable = c(sample_metaData$infection_ancestry), usage = "neighbors")
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_variable = c(sample_metaData$infection_ancestry), usage = "distance", neighbors = c(50))
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_variable = c(sample_metaData$infection_ancestry), usage = "iterations", neighbors = c(50), min_distance = 0.25)
+optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_variable = c(sample_metaData$infection_ancestry), usage = "check", neighbors = c(50), min_distance = 0.25, iterations = 300, display_legend = TRUE)
 umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 50, n_components = 2, min_dist = 0.25, n_epoch = 300, metric = "euclidean")
 
 par(old_par)
-optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "neighbors")
-optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
-optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
-optimizeUMAP(data_object = pca_vst$x[,1:11], feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.3, iterations = 100, display_legend = TRUE)
-umap_samples2 = umap(pca_vst$x[,1:11], method = "naive", n_neighbors = 35, n_components = 2, min_dist = 0.3, n_epoch = 200, metric = "euclidean")
+optimizeUMAP(data_object = pca_vst$x[,1:6], feature_variable = c(sample_metaData$infection_ancestry), usage = "neighbors")
+optimizeUMAP(data_object = pca_vst$x[,1:6], feature_variable = c(sample_metaData$infection_ancestry), usage = "distance", neighbors = c(50))
+optimizeUMAP(data_object = pca_vst$x[,1:6], feature_variable = c(sample_metaData$infection_ancestry), usage = "iterations", neighbors = c(50), min_distance = 0.25)
+optimizeUMAP(data_object = pca_vst$x[,1:6], feature_variable = c(sample_metaData$infection_ancestry), usage = "check", neighbors = c(50), min_distance = 0.3, iterations = 100, display_legend = TRUE)
+umap_samples2 = umap(pca_vst$x[,1:6], method = "naive", n_neighbors = 35, n_components = 2, min_dist = 0.3, n_epoch = 200, metric = "euclidean")
 
 par(old_par)
 # MDS 
-mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection))
-mds_samples = mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), data_return = "classic")
+mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry))
+mds_samples = mdsOptimize(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry), data_return = "classic")
 
 par(old_par)
-mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection))
-mds_samples2 = mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection), data_return = "classic")
+mdsOptimize(data_object = t(pca_vst$x[,1:6]), feature_labels = c(sample_metaData$infection_ancestry))
+mds_samples2 = mdsOptimize(data_object = t(pca_vst$x[,1:11]), feature_labels = c(sample_metaData$infection_ancestry), data_return = "classic")
 
 # clear system memory
 set.seed(NULL)
@@ -340,61 +342,68 @@ Now, the following clustering methods will be demonstrated: the previous discuss
 par(old_par) # reset graphic parameters
 
 # PCA Hierarchical Clustering
-cophTable_pca = analysisCophenetic(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_pca = analysisCophenetic(data_object = pca_vst$x[,1:6], feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced")
 cophTable_pca
-analysisHCLUSTCorrelation(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = c("euclidean", "manhattan", "pearson"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid"))
+analysisHCLUSTCorrelation(data_object = pca_vst$x[,1:6], feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "manhattan"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid"))
+analysisHCLUSTCorrelation(data_object = pca_vst$x[,1:6], feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "pearson"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid"))
 
 ### Average linkage method selected for magnitutde and coepxression evaluation
-dend_pca_magnitude = objectHCLUST(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_pca_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_pca_magnitude = objectHCLUST(data_object = pca_vst$x[,1:6], feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_pca_magnitude, leaf_count = 10, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_pca_magnitude, k = 4)) # view dendrogram with the optimal number of leaves to capture the biology
 
-dend_pca_coexpression = objectHCLUST(data_object = pca_vst$x[,1:11], feature_labels = c(sample_metaData$infection), usage = "reduced", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_pca_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
-plot(color_branches(dend_pca_coexpression, k = 4)) # view dendrogram with the optimal number of leaves to capture the biology
+dend_pca_coexpression = objectHCLUST(data_object = pca_vst$x[,1:6], feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "pearson", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_pca_coexpression, leaf_count = 10, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_pca_coexpression, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
 
 ## tSNE Hierarchical Clustering
-cophTable_tsne = analysisCophenetic(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_tsne = analysisCophenetic(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced")
 cophTable_tsne
-analysisHCLUSTCorrelation(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced")
+analysisHCLUSTCorrelation(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "manhattan"))
+analysisHCLUSTCorrelation(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("pearson","spearman"))
+analysisHCLUSTCorrelation(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "pearson"), linkage_methods = c("ward.D","ward.D2","average","centroid"))
 
 ### Average linkage method selected for magnitutde and coepxression evaluation
-dend_tsne_magnitude = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_tsne_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_tsne_magnitude = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_tsne_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_tsne_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
 
-dend_tsne_coexpression = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_tsne_coexpression, leaf_count = 10, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_tsne_coexpression = objectHCLUST(data_object = tSNE_samples$Y, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_tsne_coexpression, leaf_count = 10, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_tsne_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
 
 ## UMAP Hierarchical Clustering
 
-cophTable_umap = analysisCophenetic(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_umap = analysisCophenetic(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced")
 cophTable_umap
-analysisHCLUSTCorrelation(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced")
+analysisHCLUSTCorrelation(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "manhattan"))
+analysisHCLUSTCorrelation(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("pearson","spearman"))
+analysisHCLUSTCorrelation(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "pearson"), linkage_methods = c("complete","ward.D2","average","mcquitty","centroid"))
 
 ### Average linkage method selected for magnitutde and coepxression evaluation
-dend_umap_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_umap_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_umap_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_umap_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_umap_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
 
-dend_umap_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_umap_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_umap_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_umap_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_umap_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
 
 ## MDS Hierarchical Clustering
 
-cophTable_mds = analysisCophenetic(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection), usage = "reduced")
+cophTable_mds = analysisCophenetic(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced")
 cophTable_mds
-analysisHCLUSTCorrelation(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection), usage = "reduced")
+analysisHCLUSTCorrelation(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("pearson","spearman"))
+analysisHCLUSTCorrelation(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "manhattan"))
+analysisHCLUSTCorrelation(data_object = mds_samples2$points, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "pearson"), linkage_methods = c("centroid","complete","average","ward.D2","mcquitty"))
 
 ### Average linkage method selected for magnitutde and coepxression evaluation
-dend_mds_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_mds_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_mds_magnitude = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_mds_magnitude, leaf_count = 6, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_mds_magnitude, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
 
-dend_mds_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
-optimizeTree(hc_object = dend_mds_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+dend_mds_coexpression = objectHCLUST(data_object = umap_samples2$layout, feature_labels = c(sample_metaData$infection_ancestry), usage = "reduced", dist_calculation = "pearson", linkage_method = "average", return_object = "dend", dend_plot = FALSE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_mds_coexpression, leaf_count = 6, feature_labels = c(sample_metaData$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
 plot(color_branches(dend_mds_coexpression, k = 2)) # view dendrogram with the optimal number of leaves to capture the biology
 
 
@@ -421,7 +430,7 @@ The most important aspect of this demonstration is the affect of DR on the hiera
 par(old_par) # reset graphic parameters
 
 # PCA K-means Clustering
-optimizeKmeans(data_object = pca_vst$x[,1:11])
+optimizeKmeans(data_object = pca_vst$x[,1:6])
 # tSNE K-mean Clustering
 optimizeKmeans(data_object = tSNE_samples$Y)
 # UMAP K-means Clustering
@@ -444,26 +453,26 @@ In this case with respect to the biology of interest, optimization of k-means cl
 ``` {r EA5, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 # PCA DBSCAN 
-optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "tune")
-optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "test", n_size = c(20,25,30,50), hp_check)
-optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection), data_type = "pca", usage = "check", hp_check = c(20,3)) # tuned to focus more on local structure
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry), data_type = "pca", usage = "tune")
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry), data_type = "pca", usage = "test", n_size = c(16,20,20,35), hp_check)
+optimizeDBSCAN(data_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry), data_type = "pca", usage = "check", hp_check = c(20,3)) # tuned to focus more on local structure
 
 # tSNE DBSCAN 
-optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "tune")
-optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "test", n_size = c(0.4,0.6,1.0,2.0), hp_check, sample_replace = FALSE)
-optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), data_type = "tsne", usage = "check", hp_check = c(2,20)) # tuned to more global strucutre over local 
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection_ancestry), data_type = "tsne", usage = "tune")
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection_ancestry), data_type = "tsne", usage = "test", n_size = c(0.4,0.5,0.7,1.25), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection_ancestry), data_type = "tsne", usage = "check", hp_check = c(2,1.25)) # tuned to more global structure over local 
 
 # UMAP DBSCAN
-optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "tune")
-optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "test", n_size = c(0.3,0.4,0.5,1), hp_check, sample_replace = FALSE)
-optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(0.3,3))
-optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(0.5,6))
-optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection), data_type = "umap", usage = "check", hp_check = c(1,20))
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "umap", usage = "tune")
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "umap", usage = "test", n_size = c(0.3,0.35,0.4,0.85), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "umap", usage = "check", hp_check = c(0.3,3))
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "umap", usage = "check", hp_check = c(0.35,4))
+optimizeDBSCAN(data_object = umap_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "umap", usage = "check", hp_check = c(0.85,20))
 
 # MDS DBSCAN
-optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "tune")
-optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "test", n_size = c(11,13,18,40), hp_check, sample_replace = FALSE)
-optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection), data_type = "mds", usage = "check", hp_check = c(18,6))
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "mds", usage = "tune")
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "mds", usage = "test", n_size = c(10,11,14,25), hp_check, sample_replace = FALSE)
+optimizeDBSCAN(data_object = mds_samples2, feature_labels = c(sample_metaData$infection_ancestry), data_type = "mds", usage = "check", hp_check = c(14,6))
 
 ```
 
@@ -483,23 +492,23 @@ Because PCA is a linear technique, the contribution of species to the variance a
 
 ``` {r EA6, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 par(old_par)
-IS_PCA = analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
-remove_samples = c()
-IS_PCA_QC = analysisPCA(data_object = RNAseqCounts_vst[,-remove_samples], feature_labels = c(sample_metaData$infection), plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
+IS_PCA = analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry), plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
+remove_samples = c(492,491,494,484,489)
+IS_PCA_QC = analysisPCA(data_object = RNAseqCounts_vst[,-remove_samples], feature_labels = c(sample_metaData$infection_ancestry)[-remove_samples], plot_data = TRUE, data_return = TRUE, load_threshold = 0.05)
 # identified species ("IS") set to a loading threshold of 0.05 across the top 3 PCs
 IS_PCA 
 IS_PCA_QC
 
 # identify important species using the distribution of contribution to variance across species
-target_sepcies_base = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11)
+target_sepcies_base = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 6)
 length(target_sepcies_base)
-target_species_directional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, top_return = FALSE)
+target_species_directional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 6, nd_return = FALSE, top_return = FALSE)
 length(target_species_directional)
-target_species_nondirectional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, d_return = FALSE, top_return = FALSE)
+target_species_nondirectional = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 6, d_return = FALSE, top_return = FALSE)
 length(target_species_nondirectional)
-target_species_top = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, nd_return = FALSE, top_pc = c(1,3))
+target_species_top = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 6, d_return = FALSE, nd_return = FALSE, top_pc = c(1,3))
 length(target_species_top)
-target_species_counter = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 11, nd_return = FALSE, nd_return = FALSE, top_pc = c(2))
+target_species_counter = filterLoadings(pca_object = pca_vst, species_labels = rownames(RNAseqCounts_vst), npcs = 6, d_return = FALSE, nd_return = FALSE, top_pc = c(2))
 length(target_species_counter)
 
 target_species_top
@@ -526,30 +535,30 @@ This tool's functionality includes capturing the species with the most relevant 
 ``` {r EA7, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 par(old_par)
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "neighbors")
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(20))
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(20), min_distance = 0.8)
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(15), min_distance = 0.8, iterations = 1000, display_legend = FALSE)
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(10), min_distance = 0.8, iterations = 1000, display_legend = FALSE)
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "neighbors")
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(20))
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(20), min_distance = 0.1)
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(15), min_distance = 0.1, iterations = 1000, display_legend = FALSE)
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(10), min_distance = 0.1, iterations = 1000, display_legend = FALSE)
 
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(10))
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(10), min_distance = 0.05)
-optimizeUMAP(data_object = pca_vst$rotation[,1:11], feature_varaible = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(10), min_distance = 0.05, iterations = 200, display_legend = FALSE)            
-umap_species = umap(pca_vst$rotation[,1:11], method = "naive", n_neighbors = 10, n_components = 2, min_dist = 0.05, n_epoch = 200, metric = "euclidean")
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "distance", neighbors = c(5))
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "iterations", neighbors = c(5), min_distance = 0.25)
+optimizeUMAP(data_object = pca_vst$rotation[,1:6], feature_variable = c(rownames(RNAseqCounts_vst)), usage = "check", neighbors = c(5), min_distance = 0.05, iterations = 500, display_legend = FALSE)            
+umap_species = umap(pca_vst$rotation[,1:6], method = "naive", n_neighbors = 5, n_components = 2, min_dist = 0.05, n_epoch = 500, metric = "euclidean")
 
 ```
 
 ### EA7 Discussion
 
-First pass hyper parameter tuning had unexpected results.  Increasing the iterations improves embedding at the cost of speed, which typically results in tighter clusters. When this doesn't occur it suggest an issue with the other hyper parameter settings.  Second pass shows high stability across the range of minimum distances and iterations.  Although the structure within the two dimensional space is not expected, the hyper parameter tuning process of this pipeline suggests this is a quality embedding of the species loading data. Finally, a clustering method will define these species into groups which may provide unseful insights based on what we know so far form the analysis and preconcieved knowledge about the species themselves.  
+First pass hyper parameter tuning had unexpected results.  Increasing the iterations improves embedding at the cost of speed, which typically results in tighter clusters. When this doesn't occur it suggest an issue with the other hyper parameter settings.  Second pass shows high stability across the range of minimum distances and iterations but not perfect.  Higher iterations resulted in a loss of separation a grouping a species but a single species remains separated.  Although separation was lost, a density-based clustering method may still catpure the separation between them.  
 
 ### EA8 Code Chunk
 
 ``` {r EA8, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
 optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "tune")
-optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "test", n_size = c(0.01,0.1,0.5,5), hp_check, sample_replace = FALSE, plot_legend = FALSE)
-optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "check", hp_check = c(0.3,3))
+optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "test", n_size = c(0.1,0.125,0.2,0.2), hp_check, sample_replace = FALSE, plot_legend = FALSE)
+optimizeDBSCAN(data_object = umap_species, feature_labels = c(rownames(RNAseqCounts_vst)), data_type = "umap", usage = "check", hp_check = c(0.2,20))
 
 par(old_par)
 optimizeKmeans(data_object = umap_species$layout)
@@ -560,14 +569,60 @@ cophTable_species
 
 dend_umap_species = objectHCLUST(data_object = umap_species$layout, feature_labels = c(rownames(RNAseqCounts_vst)), usage = "reduced", dist_calculation = "euclidean", linkage_method = "average", return_object = "dend", dend_plot = FALSE)
 optimizeTree(hc_object = dend_umap_species, leaf_count = 10, feature_labels = c(rownames(RNAseqCounts_vst))) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
-x = cutree(dend_umap_species, k = 3)
-plot(color_branches(dend_umap_species, k = 3)) # view dendrogram with the optimal number of leaves to capture the biology
+species_hclustering = cutree(dend_umap_species, k = 5)
+plot(color_branches(dend_umap_species, k = 5)) # view dendrogram with the optimal number of leaves to capture the biology
+table(x)
+
 ```
 
 
 ### EA8 Discussion
 
 Because of the spatial embedding of the data within the reduced dimensional space, K-means clustering is unlikely the best method.  Judging by the amount of overlay between the species within the space, density-based clustering may best capture subtleties unseen by the previous visualization.   
+
+## Generating Hypotheses from Exploratory Analysis Applied to the GEO Data Set
+
+### EA9 Code Chunk
+
+``` {r EA9, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+species_DBclustering = dbscan(umap_species$layout, eps = 0.2, minPts = 20)
+
+table(species_DBclustering$cluster)
+table(species_hclustering)
+DataSubset_List = list() # create a list of Data frames for subsets of RNAseqCounts_vst for supervised learning
+subset_index = 1
+# flow control to make data subsets from each clustering results
+for (cluster in unique(species_DBclustering$cluster)) {
+  index_target = which(species_DBclustering$cluster == cluster)
+  subset_data = as.data.frame(RNAseqCounts_vst[index_target,])
+  DataSubset_List[[subset_index]] = subset_data
+  subset_index = subset_index + 1
+}
+for (cluster in unique(species_hclustering)) {
+  index_target = which(species_hclustering == cluster)
+  subset_data = as.data.frame(RNAseqCounts_vst[index_target,])
+  DataSubset_List[[subset_index]] = subset_data
+  subset_index = subset_index + 1
+}
+
+IS_names_top = rownames(IS_PCA[abs(IS_PCA$PC1) >= 0.05 | abs(IS_PCA$PC2) >= 0.05 | abs(IS_PCA$PC3) >= 0.05,])
+ISqc_names_top = rownames(IS_PCA_QC[abs(IS_PCA_QC$PC1) >= 0.05 | abs(IS_PCA_QC$PC2) >= 0.05 | abs(IS_PCA_QC$PC3) >= 0.05,])
+table(IS_names_top == ISqc_names_top)
+length(IS_names_top)
+
+DataSubset_List[[subset_index]] = as.data.frame(RNAseqCounts_vst[IS_names_top,])
+subset_index = subset_index + 1
+
+```
+
+
+### EA9 Discussion
+
+Discuss the details leading into the list of subset data sets for supervised learning method application. 
+
+Touch on hypothesis generation from exploratory analysis alone and validation with supervised learning (Over Enrishment Analysis, Gene Set Enrichment analysis, network analysis, etc)
+
 
 # Supervised Learning 
 
@@ -644,219 +699,68 @@ plotDispEsts(dds)
 
 ### DEG Discussion 
 
+Discuss the various metrics used for DEG analysis and the p-value/adjusted p-value problem encountered in the result data here including the shift to use CPM for filtering low counts and the corrections made by the DESeq() function.  Touch on the high species identification using typical log2FC values and adjusted p-values and how the the rationale applied to the results affects detection of novel species of interest.  
 
 
+## Linear Regression Models
 
+### GLM1 Code Chunk
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Code Chunk
-
-``` {r EA3_tSNE_UMAP, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-
-# t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "perplexity")
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "iterations", neighbors = 50)
-optimizeTSNE(data_object = t(RNAseqCounts_vst), feature_labels = c(sample_metaData$infection), usage = "check", neighbors = 75, iterations = 6*50)
-
-tSNE_samples = Rtsne(t(RNAseqCounts_vst), dims = 2, perplexity = 75, max_iter = 6*50, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
-# hclustering 
-cophTable_tsne = copheneticEval(data_object = tSNE_samples$Y, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
-cophTable_tsne = copheneticEval2(data_object = tSNE_samples$Y, transpose_data = "features", data_reduced = TRUE)
-cophTable_tsne
-# kmeans
-kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(tSNE_samples$Y, cluster_count = 3, normalize_comparison = TRUE)
-
-# UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "neighbors")
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "distance", neighbors = c(50))
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "iterations", neighbors = c(50), min_distance = 0.25)
-optimizeUMAP(data_object = t(RNAseqCounts_vst), feature_varaible = c(sample_metaData$infection), usage = "check", neighbors = c(50), min_distance = 0.25, iterations = 300, display_legend = TRUE)
-
-umap_samples = umap(t(RNAseqCounts_vst), method = "naive", n_neighbors = 50, n_components = 2, min_dist = 0.25, n_epoch = 300, metric = "euclidean")
-# hclustering 
-cophTable_umap = copheneticEval(count_data = umap_samples$layout, feature_labels = c(t(sample_metaData$infection)), usage = "reduction")
-cophTable_umap = copheneticEval2(data_object = umap_samples$layout, transpose_data = "features", data_reduced = TRUE)
-cophTable_umap
-# kmeans
-kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(umap_samples$layout, cluster_count = 3, normalize_comparison = TRUE)
-
+``` {r GLM1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 ```
 
-### Discussion
+### GLM1 Discussion 
 
-Successful optmimization of dimensional reduction methods t-SNE and UMAP to well represent the treatment groups.  CLuster analysis must be performed to cooraborate the results for all three methods.  
 
-## Code Chunk
+## Machine Learning Methods
 
-``` {r EA3_FinalAnaly sis, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+### ML1 Code Chunk
 
-# PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-
-clusterAnalysis3(data_object = pca_vst, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 6, reduction = "pca", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
-clusterAnalysis3(data_object = pca_vst, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "pca", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
-
-# tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 28, dist_min = 0.05)
-
-clusterAnalysis3(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 3, reduction = "tsne", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
-clusterAnalysis3(data_object = tSNE_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "tsne", dim_include = 10, dist_calc = "euclidean", linkage = "ward.D", k_algorithm = "Hartigan-Wong")
-
-# UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = TRUE, dim_output = 2, local_global = 20, dist_min = 0.05)
-
-clusterAnalysis3(data_object = umap_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "hclust", cluster_count = 3, reduction = "umap", dim_include = 10, dist_calc = "euclidean", linkage = "average", k_algorithm = "Hartigan-Wong")
-clusterAnalysis3(data_object = umap_samples, feature_labels = c(sample_metaData$infection), cluster_algorithm = "kmeans", cluster_count = 3, reduction = "umap", dim_include = 10, dist_calc = "euclidean", linkage = "ward.D", k_algorithm = "Hartigan-Wong")
-
+``` {r ML1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 ```
 
-## Discussion
 
-Along with dimensionality reduction, clustering successfully captures the biological feature (macrophage infection response).  Reduction through PCA, hierarchical clustering was unable to match cluster number with infection type as several outliers distort the clustering.  At 6 perceived clusters, the bulk of the separation was finally captured via clustering.  Reduction through UMAP provides tighter clusters while tSNE generates clusters with a significantly wider spread. However, both algorithms still provide adequate inter-cluster spread. Each of the techniques was successful in matching the cluster number with infection type.  Based on these results infection type is captured well by the gene expression differences between samples.  Therefore, exploratory analysis by species (genes) will yield the genomic contribution to the phenotypic differences of macrophages by infection type.  
-
-# Differential Expression Analysis
-
-# Exploratory Analysis by Genes
-
-## Code Chunk
-
-``` {r explore_gene, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-varTable_topVar = vst_varTable[vst_varTable$variance>3,]
-
-RNAseqCounts_topVar = RNAseqCounts_vst[rownames(varTable_topVar),]
-
-# top 1000 genes by variance > 1
-pca_genes = plotPCA(count_data = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), usage = "species", plot2D = TRUE, plot3D = FALSE, return = TRUE)
-sAnalyzePCA(pcaData_1 = pca_vst , pcaData2 = pca_genes, species_labels = rownames(RNAseqCounts_topVar), main_title = "PCA for Top Loading Genes", input_type = "pca", visualize = TRUE, visual_count = 5, return = "genes")
-
-# screeplot
-par(mfrow = c(1,1))
-screeplot(pca_genes, npcs = 10, type = "barplot", main = "Total Variance Within the First 10 PCs")
-
-cophTable_genePCA = copheneticEval(data_object = pca_genes$x[,1:3], feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
-cophTable_genePCA
-cophTable_genePCA = copheneticEval2(data_object = pca_genes$x[,1:3], transpose_data = "species", data_reduced = TRUE)
-cophTable_genePCA
-
-kclusterOptimize(pca_genes$x[,1:3], cluster_range = 20, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(pca_genes$x[,1:3], cluster_count = 6, normalize_comparison = TRUE)
+### ML1 Discussion
 
 
-# t-SNE optimization along with parameter tuning for hierarchical and kmeans clustering 
-tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), duplicates = FALSE)
-tsneOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 12, duplicates = FALSE)
-tSNE_genes = Rtsne(RNAseqCounts_topVar, dims = 2, perplexity = 12, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
-# hclustering 
-cophTable_tsne = copheneticEval(count_data = tSNE_genes$Y, feature_labels = rownames(RNAseqCounts_vst), usage = "reduction")
-cophTable_tsne
-cophTable_tsne = copheneticEval2(data_object = tSNE_genes$Y, transpose_data = "species", data_reduced = TRUE, verbose = TRUE)
-cophTable_tsne
-# kmeans
-kclusterOptimize(tSNE_samples$Y, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(tSNE_samples$Y, cluster_count = 5, normalize_comparison = TRUE)
+# Hypothesis Generation
 
-# UMAP optimization along with parameter tuning for hierarchical and kmeans clustering 
-umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst))
-umapOptimize(data_object = RNAseqCounts_topVar, feature_varaible = rownames(RNAseqCounts_vst), usage = "check", neighbors = 20)
-umap_genes = umap(RNAseqCounts_topVar, method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, metric = "euclidean")
-# hclustering 
-cophTable_umap = copheneticEval(count_data = umap_genes$layout, feature_labels = rownames(y), usage = "reduction")
-cophTable_umap
-cophTable_umap = copheneticEval2(data_object = umap_genes$layout, transpose_data = "species", data_reduced = TRUE)
-cophTable_umap
-# kmeans
-kclusterOptimize(umap_samples$layout, cluster_range = 10, iteration_max = 10, kmean_algorithm = "Hartigan-Wong")
-kclusterWithinSS(umap_samples$layout, cluster_count = 6, normalize_comparison = TRUE)
+## Over Enrichment Analysis (OEA)
 
+### OEA1 Code Chunk
 
-# PCA Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis2(data_object = pca_genes, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, use_dim = 10, return = FALSE)
-clusterAnalysis2(data_object = pca_genes, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, use_dim = 10, return = FALSE)
-
-
-
-
-
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "Pearson", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 6, dimension_reduction = "pca", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
-
-# tSNE Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "tsne", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "pearson", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 5, dimension_reduction = "tsne", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 12, dist_min = 0.05)
-
-# UMAP Dimensional Reduction for Clustering Algorithms (Hierarchical and Kmeans)
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "hclust", algorithm_method = "average", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05, return = "none")
-clusterAnalysis(data_object = RNAseqCounts_topVar, feature_labels = rownames(RNAseqCounts_topVar), cluster_count = 3, dimension_reduction = "umap", cluster_algorithm = "kmeans", algorithm_method = "Hartigan-Wong", dist_method = "euclidean", transpose_data = FALSE, dim_output = 2, local_global = 6, dist_min = 0.05)
-
+``` {r OEA1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 ```
 
-## Discussion
+
+### OEA1 Discussion
 
 
-## Code Chunk
+## Gene Set Enrichment Analysis (GSEA)
 
-``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-# PCA
+### GSEA1 Code Chunk
 
-## A more comprehensive PCA of the data set
-
-analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection), center_data = TRUE, scale_data = FALSE, plot_data = TRUE, data_return = FALSE, load_threshold = 0.5, top_result = 10, PC_error = 10)
-
-
+``` {r GSEA1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 ```
 
-## Discussion
 
-## Discussion
-
-## Code Chunk
-
-``` {r EA3_, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-
-
-```
-
-## Discussion
-
-# Section Title
-
-## Code Chunk
-
-``` {r Q2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-
-w = hclustObject(data_object = tSNE_genes$Y, dist_method = "euclidean", linkage_method = "average", transpose_data = "species", verbose = TRUE)
-x = hclustObject(data_object = tSNE_genes$Y, dist_method = "pearson", linkage_method = "ward.D2", transpose_data = "species", verbose = TRUE)
-xd = as.dist(1-stats::cor(t(tSNE_genes$Y), method = "pearson"))
-y
-z
-
-
-```
-
-## Discussion
+### GSEA1 Discussion
 
 
 
-# Question 3
+
+
+
+
+
+
+
+
+
+
+
+
+# title
 
 ## Code Chunk
 
@@ -865,13 +769,3 @@ z
 
 ## Discussion
 
-
-
-# Question 4
-
-## Code Chunk
-
-``` {r Q4, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
-```
-
-## Discussion

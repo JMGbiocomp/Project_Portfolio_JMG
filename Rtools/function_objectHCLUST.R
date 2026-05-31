@@ -12,10 +12,10 @@
 # dependencies
   # stats
 
-objectHCLUST = function (data_object, feature_labels, usage = "features", dist_calculation = "euclidean", linkage_method = "average", return_object = "hclust", dend_plot = FALSE) {
+objectHCLUST = function (data_object = NULL, feature_labels = NULL, usage = "features", dist_calculation = "euclidean", linkage_method = "average", return_object = "hclust", dend_plot = FALSE) {
   # errors, warnings, and messages
-  if (is.null()) {stop("must provide a matrix-like data structure with features in columns and species in rows.")}
-  if (is.null()) {stop("must provide a vector of length equal to the feature of interest within data_object.")}
+  if (is.null(data_object)) {stop("must provide a matrix-like data structure with features in columns and species in rows.")}
+  if (is.null(feature_labels)) {stop("must provide a vector of length equal to the feature of interest within data_object.")}
   
   # flow control to determine data structure needed for creating hclust object
   if (usage == "features") {

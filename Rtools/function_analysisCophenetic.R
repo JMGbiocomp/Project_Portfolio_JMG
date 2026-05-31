@@ -18,7 +18,7 @@ analysisCophenetic = function (data_object = NULL, feature_labels = NULL, usage 
   if (is.null(data_object)) {stop("Must provide a matrix-like data structure with features in columns and species in rows.")}
   if (is.null(feature_labels)) {stop("Must provide a vector of species labels for determining the minimum threshold.")}
   if (usage == "features" & dim(data_object)[2] != length(feature_labels)) {stop("feature_labels length must match the number of columns in the data_object.")}
-  if (dim(data_object)[2] != length(feature_labels) & (usage == "species" | usage == "reduced")) {stop("feature_labels length must match the number of rows in the data_object.")}
+  if (dim(data_object)[1] != length(feature_labels) & (usage == "species" | usage == "reduced")) {stop("feature_labels length must match the number of rows in the data_object.")}
   
   # output data structure
   summary_data = data.frame(matrix(0, nrow = length(dist_calculation), ncol = length(linkage_method)))

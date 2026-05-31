@@ -125,8 +125,12 @@ analysisPCA = function (data_object, feature_labels, center_data = TRUE, scale_d
     
     # Species to return
     temp = as.data.frame(pca_loading)
-    temp$mean_load = rowSums(pca_loading)
-    temp$absolute_load = rowSums(abs(pca_loading))
+    temp$mean_load = c(0)
+    temp$absolute_load = c(0)
+    for (i in 1:dim(temp)[1]) {
+      temp[i,"mean_load"] = sum(temp[i,1:3])/3
+      temp[i,"absolute_load"] =sum(abs(temp[i,1:3]))/3
+    }
   }                                                                                                                                                                                                                                                           
   
   if (data_return & plot_data) {

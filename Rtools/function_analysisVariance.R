@@ -1,5 +1,5 @@
 ### === Analysis of Variance Stability === ###
-# Function to provide a table or visualization of the varaince across all species in a data set
+# Function to provide a table or visualization of the variance across all species in a data set
 # Useful in determining how well variance has been stabilized between species from normalization methods across samples 
 # arguments:
   # data_object = matrix-like data structure with features as columns and species as rows
@@ -11,7 +11,7 @@
 # dependencies:
   # stats, ggplot2
 
-analysisVariance = function (data_object, plot_title, data_return = "none", histogram = TRUE, scatter = TRUE) {
+analysisVariance = function (data_object, plot_title, data_return = "none", histogram = TRUE, scatter = TRUE, meanSD = TRUE) {
   
   variance_data = data.frame(matrix(0, nrow = dim(data_object)[1], ncol = 4))
   colnames(variance_data) = c("index","mean","std","variance")
@@ -30,11 +30,11 @@ analysisVariance = function (data_object, plot_title, data_return = "none", hist
     plot(x = variance_data$index, y = variance_data$variance, main = plot_title, xlab = "species index", ylab = "variance")
   }
   
-  mds_plot = ggplot2::ggplot(data = variance_data, aes(x = mean, y = std)) + geom_point(color = "blue", size = 1) + labs(title = plot_title, x = "mean", y = "std") + geom_smooth(method="gam", col = "red", size = 0.3, se = FALSE) + theme(panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
- 
+  mds_plot = ggplot2::ggplot(data = variance_data, aes(x = mean, y = std)) + geom_point(color = "blue", size = 1) + labs(title = plot_title, x = "mean", y = "std") + geom_smooth(method="gam", col = "red", linewidth = 0.3, se = FALSE) + theme(panel.grid.minor = element_blank(),panel.border = element_rect(color = "black", fill = NA, linewidth = 1), legend.position = "none")
+  if (meanSD) {
+    print(mds_plot)
+  }
    if (data_return == "summary") {
     return(variance_data)
-   } else if (data_return == "mds") {
-    return(mds_plot)
-  }
+   }
 }
