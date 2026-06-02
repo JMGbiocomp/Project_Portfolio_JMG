@@ -182,7 +182,7 @@ rownames(sample_metaData) = colnames(RNAseqCounts) # add rownames to match colum
 sample_metaData$infection = factor(sample_metaData$infection, levels = c("Non-infected", "Listeria", "Salmonella")) 
 sample_metaData$ancestry = factor(sample_metaData$ancestry, levels = c("African","European"))
 sample_metaData$infection_ancestry = factor(sample_metaData$infection_ancestry, levels = c("Non-infected_African","Non-infected_European","Listeria_African","Listeria_European","Salmonella_African","Salmonella_European"))
-deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection + ancestry) # DEseq obejct
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection_ancestry) # DEseq obejct
 deSEQ_vst = vst(deSEQ) # VST normalization of raw data
 RNAseqCounts_vst = assay(deSEQ_vst) # extract VST nromalized data
 
@@ -634,30 +634,103 @@ A fundamental supervised learning method is differential expression analysis in 
 
 ``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
+# Contrast Specific Approach to DEG
 dds = DESeq(deSEQ)
-res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), lfcThreshold = 1, alpha = 0.01, altHypothesis = "greaterAbs")
+plotDispEsts(dds)
+## By Ancestry
+# apply shrinkage
+res_ACvsEC <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Non-infected_European"), type = "ashr")
+plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Non.infected_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_ACvsAL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_African"), type = "ashr")
+plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Listeria_African_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_ACvsEL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_European"), type = "ashr")
+plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Listeria_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_ACvsAS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
+plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Salmonella_African_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_ACvsAS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_European"), type = "ashr")
+plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Salmonella_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+
+
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry + infection + ancestry:infection)# DEseq obejct
+dds = DESeq(deSEQ)
+plotDispEsts(dds)
+resultsNames(dds)
+# [1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
+# [6] "ancestryEuropean.infectionSalmonella"
+
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry + infection)# DEseq obejct
+dds = DESeq(deSEQ)
+plotDispEsts(dds)
+resultsNames(dds)
+# "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected"
+
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry*infection)# DEseq obejct
+dds = DESeq(deSEQ)
+plotDispEsts(dds)
+resultsNames(dds)
+
+#[1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
+#[6] "ancestryEuropean.infectionSalmonella"
+
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry*infection+ancestry:infection)# DEseq obejct
+dds = DESeq(deSEQ)
+plotDispEsts(dds)
+resultsNames(dds)
+
+#[1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
+#[6] "ancestryEuropean.infectionSalmonella"
+
+
+##By Infection
+# apply shrinkage
+res_african_CvsL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_African"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Listeria Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_african_CvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_african_LvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Listeria_African","Salmonella_African"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Listeria vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+
+res_european_CvsL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_European","Listeria_European"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Listeria Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_european_CvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_european_LvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Listeria_African","Salmonella_African"), type = "ashr")
+plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Listeria vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+
+
+
+res_listeria_ancestry <- lfcShrink(dds, contrast = c("infection_ancestry","Listeria_African", "Listeria_European"), type = "ashr")
+plotDESeqResults(data_object = res_listeria_ancestry, plot_title = "Listeria Ancestry Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+res_listeria_ancestry <- lfcShrink(dds, contrast = c("infection_ancestry","Salmonella_African", "Salmonella_European"), type = "ashr")
+plotDESeqResults(data_object = res_listeria_ancestry, plot_title = "Salmonella Ancestry Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
+
+
+# Any Respodning Gene Across all comparisons
+dds_LRT = DESeq(deSEQ, test="LRT", reduced = ~1)
+plotDispEsts(dds)
+
+res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), alpha = 0.01, altHypothesis = "greaterAbs")
 DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
 colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_CvsS) = rownames(res_CvsS)
 DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
-#DEGresults_CvsS = DEGresults_CvsS[DEGresults_CvsS$padj<0.01,]
 
-res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), lfcThreshold = 1, alpha = 0.01)
+res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), alpha = 0.01, altHypothesis = "greaterAbs")
 DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
 colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_CvsL) = rownames(res_CvsL)
 DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
 #DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.01,]
 
-res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), lfcThreshold = 1, alpha = 0.01)
+res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), alpha = 0.01, altHypothesis = "greaterAbs")
 DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
 colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
 rownames(DEGresults_LvsS) = rownames(res_LvsS)
 DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
 #DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.01,]
 
-plot(x = DEGresults_CvsL$L2FC, y = -log10(DEGresults_CvsL$padj))
-plot(x = DEGresults_CvsL$L2FC, y = -log10(DEGresults_CvsL$pvalue))
+plot(x = DEGresults_CvsS$L2FC, y = -log10(DEGresults_CvsS$padj))
+plot(x = DEGresults_CvsS$L2FC, y = -log10(DEGresults_CvsS$pvalue))
 
 plot(x = res_CvsL$log2FoldChange, y = -log10(res_CvsL$pvalue))
 plot(x = res_CvsS$log2FoldChange, y = -log10(res_CvsS$pvalue))
