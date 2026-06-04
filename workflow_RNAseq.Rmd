@@ -634,145 +634,77 @@ A fundamental supervised learning method is differential expression analysis in 
 
 ``` {r DEG, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
 
-# Contrast Specific Approach to DEG
-dds = DESeq(deSEQ)
-plotDispEsts(dds)
-## By Ancestry
-# apply shrinkage
-res_ACvsEC <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Non-infected_European"), type = "ashr")
-plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Non.infected_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_ACvsAL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_African"), type = "ashr")
-plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Listeria_African_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_ACvsEL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_European"), type = "ashr")
-plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Listeria_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_ACvsAS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
-plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Salmonella_African_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_ACvsAS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_European"), type = "ashr")
-plotDESeqResults(data_object = res_non.infected_ancestry, plot_title = "infection_ancestry_Salmonella_European_vs_Non.infected_African", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-
-
+# Recreate DESeq object to understand the affect Ancestry has on resposne to infection
 deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry + infection + ancestry:infection)# DEseq obejct
-dds = DESeq(deSEQ)
-plotDispEsts(dds)
+dds = DESeq(deSEQ) # run DESeq
+plotDispEsts(dds) # View dispersion plot
+resultsNames(dds) # get names of coefficients for results data
+
+# What is the effect of ancestry in non-infected samples only?
+result_baseline_ancestry = results(dds, name = "ancestry_European_vs_African") 
+result_baseline_ancestry_shrink = lfcShrink(dds, res = result_baseline_ancestry, type = "ashr")
+plotDESeqResults(data_object = result_baseline_ancestry, "Non-infected African vs European Populations")
+plotDESeqResults(data_object = result_baseline_ancestry_shrink, "Shrunk Non-infected African vs European Populations", shrink_data = TRUE, return_data = TRUE)
+
+# Is the response to Listeria infection different in European population?
+# difference in Listeria response minus the baseline difference between the ancestries
+result_Listeria_ancestry = results(dds, name = "ancestryEuropean.infectionListeria") 
+result_Listeria_ancestry_shrink = lfcShrink(dds, res = result_Listeria_ancestry, type = "ashr")
+plotDESeqResults(data_object = result_Listeria_ancestry, "Difference Between European and African Population: Listeria")
+plotDESeqResults(data_object = result_Listeria_ancestry_shrink, "Difference Between European and African Population (Shrunk): Listeria", shrink_data = TRUE, return_data = TRUE)
+# absolute difference in Listeria response (includes the baseline differences)
+result_Listeria_ancestry2 = results(dds, contrast=list(c("ancestry_European_vs_African", "ancestryEuropean.infectionListeria")))
+result_Listeria_ancestry_shrink2 = lfcShrink(dds, contrast = list(c("ancestry_European_vs_African", "ancestryEuropean.infectionListeria")), type = "ashr")
+plotDESeqResults(data_object = result_Listeria_ancestry2, "Absolute Differences Between Eurpoean and African Population: Listeria")
+plotDESeqResults(data_object = result_Listeria_ancestry_shrink2, "Absolute Differences Between Eurpoean and African Population: Listeria (Shrunk): Listeria", shrink_data = TRUE, return_data = TRUE)
+
+# Is the response to Salmonella infection different in European population?
+# difference in Salmonella response minus the baseline difference between the ancestries
+result_Salmonella_ancestry = results(dds, name = "ancestryEuropean.infectionSalmonella") 
+result_Salmonella_ancestry_shrink = lfcShrink(dds, res = result_Salmonella_ancestry, type = "ashr")
+plotDESeqResults(data_object = result_Salmonella_ancestry, "Difference Between European and African Population: Salmonella")
+plotDESeqResults(data_object = result_Salmonella_ancestry_shrink, "Difference Between European and African Population (Shrunk): Salmonella", shrink_data = TRUE, return_data = TRUE)
+# absolute difference in Salmonella response (includes the baseline differences)
+result_Salmonella_ancestry2 = results(dds, contrast=list(c("ancestry_European_vs_African", "ancestryEuropean.infectionSalmonella")))
+result_Salmonella_ancestry_shrink2 = lfcShrink(dds, contrast = list(c("ancestry_European_vs_African", "ancestryEuropean.infectionSalmonella")), type = "ashr")
+plotDESeqResults(data_object = result_Listeria_ancestry2, "Absolute Differences Between Eurpoean and African Population: Salmonella")
+plotDESeqResults(data_object = result_Listeria_ancestry_shrink2, "Absolute Differences Between Eurpoean and African Population: Listeria (Shrunk): Salmonella", shrink_data = TRUE, return_data = TRUE)
+
+# What genes respond to Listeria infection in the African population?
+result_baseline_Listeria = results(dds, name = "infection_Listeria_vs_Non.infected") 
+result_baseline_Listeria_shrink = lfcShrink(dds, res = result_baseline_Listeria, type = "ashr")
+plotDESeqResults(data_object = result_baseline_Listeria, "African Popualtion Response to Infection: Listeria")
+plotDESeqResults(data_object = result_baseline_Listeria_shrink, "African Population Response to Infection (Shrunk): Listeria", shrink_data = TRUE)
+
+# What genes respond to Salmonella infection in the African population?
+result_baseline_Salmonella = results(dds, name = "infection_Salmonella_vs_Non.infected")
+result_baseline_Salmonella_shrink = lfcShrink(dds, res = result_baseline_Salmonella, type = "ashr")
+plotDESeqResults(data_object = result_baseline_Salmonella, "African Popualtion Response to Infection: Salmonella")
+plotDESeqResults(data_object = result_baseline_Salmonella_shrink, "African Population Response to Infection (Shrunk): Salmonella", shrink_data = TRUE)
+
+# Investigate the European population
+# restrucutre the design
+dds$ancestry <- relevel(dds$ancestry, ref = "European")
+dds <- DESeq(dds)
 resultsNames(dds)
-# [1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
-# [6] "ancestryEuropean.infectionSalmonella"
 
-deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry + infection)# DEseq obejct
-dds = DESeq(deSEQ)
-plotDispEsts(dds)
-resultsNames(dds)
-# "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected"
+# What genes respond to Listeria infection in the European population?
+result_European_Listeria = results(dds, name = "infection_Listeria_vs_Non.infected") 
+result_European_Listeria_shrink = lfcShrink(dds, res = result_baseline_Listeria, type = "ashr")
+plotDESeqResults(data_object = result_European_Listeria, "African Popualtion Response to Infection: Listeria")
+plotDESeqResults(data_object = result_European_Listeria_shrink, "African Population Response to Infection (Shrunk): Listeria", shrink_data = TRUE)
 
-deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry*infection)# DEseq obejct
-dds = DESeq(deSEQ)
-plotDispEsts(dds)
-resultsNames(dds)
+# What genes respond to Salmonella infection in the European population?
+result_European_Salmonella = results(dds, name = "infection_Salmonella_vs_Non.infected")
+result_European_Salmonella_shrink = lfcShrink(dds, res = result_baseline_Salmonella, type = "ashr")
+plotDESeqResults(data_object = result_European_Salmonella, "African Popualtion Response to Infection: Salmonella")
+plotDESeqResults(data_object = result_European_Salmonella_shrink, "African Population Response to Infection (Shrunk): Salmonella", shrink_data = TRUE)
 
-#[1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
-#[6] "ancestryEuropean.infectionSalmonella"
-
-deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ ancestry*infection+ancestry:infection)# DEseq obejct
-dds = DESeq(deSEQ)
-plotDispEsts(dds)
-resultsNames(dds)
-
-#[1] "Intercept"                            "ancestry_European_vs_African"         "infection_Listeria_vs_Non.infected"   "infection_Salmonella_vs_Non.infected" "ancestryEuropean.infectionListeria"  
-#[6] "ancestryEuropean.infectionSalmonella"
-
-
-##By Infection
-# apply shrinkage
-res_african_CvsL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Listeria_African"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Listeria Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_african_CvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_african_LvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Listeria_African","Salmonella_African"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Listeria vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-
-res_european_CvsL <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_European","Listeria_European"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Listeria Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_european_CvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Non-infected_African","Salmonella_African"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Control vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_european_LvsS <- lfcShrink(dds, contrast = c("infection_ancestry", "Listeria_African","Salmonella_African"), type = "ashr")
-plotDESeqResults(data_object = res_african_CvsL, plot_title = "African Listeria vs Salmonella Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-
-
-
-res_listeria_ancestry <- lfcShrink(dds, contrast = c("infection_ancestry","Listeria_African", "Listeria_European"), type = "ashr")
-plotDESeqResults(data_object = res_listeria_ancestry, plot_title = "Listeria Ancestry Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-res_listeria_ancestry <- lfcShrink(dds, contrast = c("infection_ancestry","Salmonella_African", "Salmonella_European"), type = "ashr")
-plotDESeqResults(data_object = res_listeria_ancestry, plot_title = "Salmonella Ancestry Comparison", shrink_data = TRUE, top_labels = 10, FC_threshold = 1.2, PV_threshold = 0.01, stat_threshold = 1.5)
-
-
-# Any Respodning Gene Across all comparisons
-dds_LRT = DESeq(deSEQ, test="LRT", reduced = ~1)
-plotDispEsts(dds)
-
-res_CvsS = results(dds, contrast = c("infection", "Non-infected", "Salmonella"), alpha = 0.01, altHypothesis = "greaterAbs")
-DEGresults_CvsS = cbind(res_CvsS$baseMean, res_CvsS$log2FoldChange, res_CvsS$stat, res_CvsS$pvalue, res_CvsS$padj)
-colnames(DEGresults_CvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_CvsS) = rownames(res_CvsS)
-DEGresults_CvsS = as.data.frame(DEGresults_CvsS)
-
-res_CvsL = results(dds, contrast = c("infection", "Non-infected", "Listeria"), alpha = 0.01, altHypothesis = "greaterAbs")
-DEGresults_CvsL = cbind(res_CvsL$baseMean, res_CvsL$log2FoldChange, res_CvsL$stat, res_CvsL$pvalue, res_CvsL$padj)
-colnames(DEGresults_CvsL) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_CvsL) = rownames(res_CvsL)
-DEGresults_CvsL = as.data.frame(DEGresults_CvsL)
-#DEGresults_CvsL = DEGresults_CvsL[DEGresults_CvsL$padj<0.01,]
-
-res_LvsS = results(dds, contrast = c("infection", "Listeria", "Salmonella"), alpha = 0.01, altHypothesis = "greaterAbs")
-DEGresults_LvsS = cbind(res_LvsS$baseMean, res_LvsS$log2FoldChange, res_LvsS$stat, res_LvsS$pvalue, res_LvsS$padj)
-colnames(DEGresults_LvsS) = c("baseMean", "L2FC", "stat", "pvalue", "padj")
-rownames(DEGresults_LvsS) = rownames(res_LvsS)
-DEGresults_LvsS = as.data.frame(DEGresults_LvsS)
-#DEGresults_LvsS = DEGresults_LvsS[DEGresults_LvsS$padj<0.01,]
-
-plot(x = DEGresults_CvsS$L2FC, y = -log10(DEGresults_CvsS$padj))
-plot(x = DEGresults_CvsS$L2FC, y = -log10(DEGresults_CvsS$pvalue))
-
-plot(x = res_CvsL$log2FoldChange, y = -log10(res_CvsL$pvalue))
-plot(x = res_CvsS$log2FoldChange, y = -log10(res_CvsS$pvalue))
-plot(x = res_LvsS$log2FoldChange, y = -log10(res_LvsS$pvalue))
-
-samples_CvsS = which(sample_metaData$infection == "Non-infected" | sample_metaData$infection == "Salmonella")
-samples_C = which(sample_metaData$infection == "Non-infected")
-samples_S = which(sample_metaData$infection == "Salmonella")
-hist(x = res_CvsS$pvalue)
-hist(x = c(t(RNAseqCounts["WASH7P",samples_CvsS])))
-hist(x = c(t(RNAseqCounts["WASH7P",samples_C])))
-hist(x = c(t(RNAseqCounts["WASH7P",samples_S])))
-
-hist(x = c(t(RNAseqCounts["MIR6859-1",samples_CvsS])))
-hist(x = c(t(RNAseqCounts["MIR6859-1",samples_C])))
-hist(x = c(t(RNAseqCounts["MIR6859-1",samples_S])))
-
-hist(x = c(t(RNAseqCounts["LINC02593",samples_CvsS])))
-hist(x = c(t(RNAseqCounts["LINC02593",samples_C])))
-hist(x = c(t(RNAseqCounts["LINC02593",samples_S])))
-
-hist(x = c(t(RNAseqCounts["PLEKHN1",samples_CvsS])))
-hist(x = c(t(RNAseqCounts["PLEKHN1",samples_C])))
-hist(x = c(t(RNAseqCounts["PLEKHN1",samples_S])))
-
-hist(x = c(t(RNAseqCounts["LOC107985728",samples_CvsS])))
-hist(x = c(t(RNAseqCounts["LOC107985728",samples_C])))
-hist(x = c(t(RNAseqCounts["LOC107985728",samples_S])))
-
-
-
-plot(x = DEGresults_LvsS$log2FoldChange, y = DEGresults_LvsS$baseMean)
-hist(x = DEGresults_LvsS$pvalue)
-
-plot(x = abs(DEGresults_CvsS$L2FC), y = abs(DEGresults_CvsS$stat))
-
-plotDispEsts(dds)
 ```
 
 ### DEG Discussion 
 
-Discuss the various metrics used for DEG analysis and the p-value/adjusted p-value problem encountered in the result data here including the shift to use CPM for filtering low counts and the corrections made by the DESeq() function.  Touch on the high species identification using typical log2FC values and adjusted p-values and how the the rationale applied to the results affects detection of novel species of interest.  
+Because the biological question aims tom investigate the interaction between ancestry (African vs European) and response to infection the formula must account for both variables (ancestry and infection) as well as an interaction term, thus the formula best suited for the DESeq analysis is "~ ancestry + infection + ancestry:infection:". The African population is set as the reference term to be inline with  genealogical history of humanity.  Non-infected group is also leveled accordingly to be recognized for baseline differentiation calculation.  The most relevant result comparisons are to tackle the baseline differences between European and African populations and their responses to each infection type.  The results if the baseline (non-infected only) differences between the ancestries reveal several gene, "MTRNR2L8", "RETN", "LILRP2", "SERPINB10", "LOC107984551", "NKG7", "USP12-DT", "DPYSL3", "MXRA7", and "IL36RN". Two approaches were employed for investigating response to infection, differentiation absent of their baseline expression differences in non-infected samples and their absolute differences (including the baseline difference).  Both assessments of the differences absent of their baseline differences return no species that pass the standard error correction and Log2FoldChange cutoff, also indicated on the volcano plots.  The p-value histograms also suggest that low probabilities achieved by some of the species may be due more to chance than represent anything statistically significant.  Only four species are found to be differentiated by absolute difference in response to Listeria infection, "RETN", "SERPINB10", "NCCRP1", and "PLAAT3".  These are the same differentiated species returned for the response to Salmonella infection.  For a sanity check, the response to infections within ancestries were also evaluated. It is reasonable to assume that an inflammatory cell like primary macrophages would display an intense and widespread response to the presence of a bacterial pathogen. As expected the number of species and magnitude of their differentiation between non-infected and infection type are large.  
 
 
 ## Linear Regression Models
