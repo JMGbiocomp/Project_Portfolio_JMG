@@ -712,6 +712,9 @@ Because the biological question aims tom investigate the interaction between anc
 ### GLM1 Code Chunk
 
 ``` {r GLM1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+
+
 ```
 
 ### GLM1 Discussion 
