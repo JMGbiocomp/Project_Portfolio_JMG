@@ -14,6 +14,6 @@ plotPCA = function (pca_object, feature_labels, axes = c(1,2), axes_labels) {
   dim2 = c(pca_object$x[,axes[2]])
   
   feature_colors = codeColor(feature_data = feature_labels)
-  plot(x = dim1, y = dim2, xlab = axes_labels[1], ylab = axes_labels[2], col = feature_colors, main = "2D Check Plot for PC Scores")
+  plot(x = dim1, y = dim2, xlab = axes_labels[1], ylab = axes_labels[2], col = feature_colors, main = "2D Check Plot for PC Scores", pch = 16)
 }
 

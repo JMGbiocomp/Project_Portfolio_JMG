@@ -11,3 +11,4 @@ workflow_RNAseq.RDataTmp
 workflow_RNAseq.RData
 .Rhistory
 .RDataTemp
+RNAseqCounts_QC.csv

@@ -1,0 +1,265 @@
+---
+title: "workflow_RNAseqQC"
+author: "Joshua Glowalla"
+date: "2026-06-13"
+output:
+  html_document:
+      toc: TRUE #toc = table of contents
+      toc_float: TRUE
+      toc_depth: 4
+      fig_caption: yes
+      code_folding: hide
+      number_sections: TRUE
+vignette: >
+    %\VignetteIndexEntry{Text}
+    %\usepackage[utf8]{inputenc}
+    %\VignetteEngine{knitr::rmarkdown}
+fontsize: 13pt
+editor_options:
+  chunk_output_type: console
+---
+
+# NCBI GEO Data
+
+## GEO Data Code Chunk
+
+```{r data, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", results='show', cache=FALSE}
+
+# load base packages and data processing functions for R analysis of biological data
+source("Rtools/load_baseline.R")
+source("Rtools/load_dataProcessing.R")
+
+# load counts table from GEO
+urld <- "https://www.ncbi.nlm.nih.gov/geo/download/?format=file&type=rnaseq_counts"
+path <- paste(urld, "acc=GSE81046", "file=GSE81046_raw_counts_GRCh38.p13_NCBI.tsv.gz", sep="&");
+tbl <- as.matrix(data.table::fread(path, header=T, colClasses="integer"), rownames=1)
+
+# Load species annotation table from GEO
+apath <- paste(urld, "type=rnaseq_counts", "file=Human.GRCh38.p13.annot.tsv.gz", sep="&")
+annot <- data.table::fread(apath, header=T, quote="", stringsAsFactors=F, data.table=F)
+rownames(annot) <- annot$GeneID
+
+# Load sample annotations table from GEO
+setwd("Desktop/Github Projects/Project_Portfolio_JMG")
+sample_table = read.csv("GSE81046_SraRunTable.csv")
+table(colnames(tbl) == sample_table$GEO_Accession..exp.)
+
+# removal of gene duplicates 
+table(rownames(tbl)==rownames(annot))
+table(duplicated(annot$Symbol))
+duplicated_indexs = IndexDuplication(annot, "Symbol")
+RNAseqCounts = data.frame(tbl[-duplicated_indexs,])
+gene_metaData = data.frame(annot[-duplicated_indexs,])
+sample_metaData = data.frame(sample_table)
+rownames(sample_metaData) = sample_metaData$Sample.Name
+
+# Ancestry data missing from sample annotations
+ancestry_table = as.data.frame(read.csv("GSE81046_ancestry.csv"))
+rownames(ancestry_table) = ancestry_table[,"sample_ID"]
+ancestry_table = ancestry_table[rownames(sample_metaData),]
+
+
+# finalize data structures
+rownames(RNAseqCounts) = c(gene_metaData$Symbol)
+rownames(gene_metaData) = c(gene_metaData$Symbol)
+sample_metaData$ancestry_ID = ancestry_table$ancestry_ID
+sample_metaData$ancestry = codeLabel(feature_labels = c(sample_metaData$ancestry_ID), label_pattern = c("AF","EU"), label_match = c("African","European"))
+sample_metaData$infection_ancestry = codeFeature(data_object = sample_metaData, feature_cols = c("infection","ancestry"))
+
+table(sample_metaData$ancestry)
+table(sample_metaData$infection)
+table(sample_metaData$infection_ancestry)
+
+# Remove unnecessary script elements
+rm(tbl, annot, sample_table, ancestary_table)
+
+```
+
+## GEO Data Discussion
+
+Research published out of the University of Chicago and uploaded by Luis Barreiro in 2016 produced a public bulk RNAseq data set intent on investigating the impact of genetic ancestry on innate immune response to pathogenic insult, specifically the two common food poisoning bacterium Listeria monocytogenes (Listeria) and Salmonella enterica (Salmonella).  Primary macrophages from African and European descent we tested against these pathogens and their transcriptomic profiles after 2 hours of either no infection, listeria or salmonella infections were presented for a total of 503 samples split among the ancestry and infection groups. 
+
+# Data QC and Filtering
+
+## QC1 Code Chunk
+
+``` {r QC1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# == pre-filter low count genes == #
+# keep genes with at least CPM = 1 in (# of samples in smallest experimental group) 
+RNAseqCounts = filterCPM(data_object = RNAseqCounts, feature_labels = c(sample_metaData$infection))
+gene_metaData = gene_metaData[rownames(RNAseqCounts),]
+# keep genes with at least 2 counts > 10
+#keep <- rowSums( RNAseqCounts >= 10 ) >= round(dim(sample_metaData)[1]*0.10)
+#table(keep)
+#RNAseqCounts <- RNAseqCounts[keep,]
+
+# == Data Normalization == #
+# TPM normalization 
+RNAseqCounts_TPM = normTPM(count_data = RNAseqCounts, gene_data = gene_metaData, col_name = "Length")
+
+# define default graphical parameters
+old_par = par(no.readonly = TRUE)
+
+par(mfrow = c(2,2))
+# data set too large to render as box plot so sample indexes are sampled to show goodness of fit
+sample_sampling = sample(x = 1:503, size = 100) # first sampling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # second sampling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # third sampling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts[,sample_sampling], main = "Raw Counts")
+boxplot(RNAseqCounts_TPM[,sample_sampling], main = "TPM Normalization")
+boxplot(log2(RNAseqCounts[,sample_sampling])+1, col = "lightblue", main = "log2 Raw Counts")
+boxplot(log2(RNAseqCounts_TPM[,sample_sampling])+1, col = "lightgreen", main = "log2 Transformed TPM Normalization")
+
+# assessment of data quality by variance stability
+par(old_par)
+par(mfrow = c(1,2))
+# raw data
+summary_RAW = analysisVariance(data_object = RNAseqCounts, plot_title = "Raw Data Variance Stability", data_return = "summary")
+# TPM normalization
+summary_TPM = analysisVariance(data_object = RNAseqCounts_TPM, plot_title = "TPM Normalization Variance Stability", data_return = "summary")
+# log2 transformed raw data 
+summary_logRAW = analysisVariance(data_object = log2(RNAseqCounts)+1, plot_title = "Transformed Raw Data Variance Stability", data_return = "summary")
+# log2 transformed TPM
+summary_logTPM = analysisVariance(data_object = log2(RNAseqCounts_TPM)+1, plot_title = "Transformed TPM Variance Stability", data_return = "summary")
+
+## reorder tables by total variance 
+summary_RAW = summary_RAW[order(summary_RAW$variance, decreasing = TRUE),]
+summary_logRAW = summary_logRAW[order(summary_logRAW$variance, decreasing = TRUE),]
+summary_TPM = summary_TPM[order(summary_TPM$variance, decreasing = TRUE),]
+summary_logTPM = summary_logTPM[order(summary_logTPM$variance, decreasing = TRUE),]
+
+# compare top 10 genes by variance for each normalization and transformation method
+head(summary_RAW, n = 10)
+head(summary_logRAW, n = 10)
+head(summary_TPM, n = 10)
+head(summary_logTPM, n = 10)
+
+# finalize transformation of TPM normalized data
+RNAseqCounts_TPM = log2(RNAseqCounts_TPM) + 1
+RNAseqCounts_TPM[RNAseqCounts_TPM == Inf | RNAseqCounts_TPM == -Inf] = 0 # remove Inf and -Inf values
+
+# Clear system memory
+par(old_par)
+rm(sample_sampling)
+```
+
+## QC1 Discussion
+
+First stage of quality control is to filter out low count species.  Although a less stringent filter is commonly applied, total counts across samples > 10, best practice is to use sequencing depth to normalize the data and remove species  where total number of samples with counts per million equal to or greater than one is less than the number of samples within the smallest treatment size.  The incorporation of sample depth allows for count sizes between samples to be better comparable and not bias samples with more sequencing depth, which is the case with raw read counts.  Where a fixed total read counts across samples biases total sample count for the data, the CPM normalization and smallest treatment size count generates a more robust low count species filtering process applicable to any data set to effectively remove these troublesome species for downstream analysis.
+
+Next, transformations (log2) and normalization of the data is evaluated for improving sample-by-sample comparison.  Although CPM is a normalization method, it does not offer a within-sample normalization step and would not solve a read count bias for the species-by-species comparisons in the analytic process.  Instead transcripts per million (TPM) is applied as the primary normalization method, which counts for biases in sequencing depth and transcript length.  Key analysis of this stage requires evaluating the distributions of read counts between samples and species.  Box-whisker plots between samples provide a strong visualization tool to view how well a method normalizes the overall samples to each other and the Mean vs SD plots (MSD plots) provide tool to see how well read counts distributions between species is stabilized.  The methods applied here, however, are not variance stabilization methods and although the results suggest that TPM normalization and log2 transformation jointly provides decent stabilization of variance and distribution of reads by sample other method exist with this aim.  
+
+To validate or refute use of TPM normalization and log2 transformation of the data for downstream analysis, the vst() normalization method from the DEseq2 package will be evaluated for comparison. rlog() normalization will be overlooked as the sample count is extremely high (503) and rlog() is better suited for low sample counts due to the computational burden of the algorithm. 
+
+
+## QC2 Data Chunk
+
+``` {r QC2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+library(DESeq2) # DESeq2 package contains robust normalization methods and differential expression worflow 
+rownames(sample_metaData) = colnames(RNAseqCounts) # add rownames to match column names in count matrix
+# convert feature variable under analysis to factors to facilitate differential expression analysis
+sample_metaData$infection = factor(sample_metaData$infection, levels = c("Non-infected", "Listeria", "Salmonella")) 
+sample_metaData$ancestry = factor(sample_metaData$ancestry, levels = c("African","European"))
+sample_metaData$infection_ancestry = factor(sample_metaData$infection_ancestry, levels = c("Non-infected_African","Non-infected_European","Listeria_African","Listeria_European","Salmonella_African","Salmonella_European"))
+deSEQ = DESeqDataSetFromMatrix(countData = RNAseqCounts, colData = sample_metaData, design = ~ infection_ancestry) # DEseq obejct
+deSEQ_vst = vst(deSEQ) # VST normalization of raw data
+RNAseqCounts_vst = assay(deSEQ_vst) # extract VST nromalized data
+
+# visualize normalization for comparison
+par(mfrow= c(2,1))
+sample_sampling = sample(x = 1:503, size = 100) # first smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # second smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
+sample_sampling = sample(x = 1:503, size = 100) # third smapling
+print("Sample Indexes:")
+print(sample_sampling)
+boxplot(RNAseqCounts_TPM[,sample_sampling], col = "lightgreen", main = "log2 Transformed TPM Normalization")
+boxplot(RNAseqCounts_vst[,sample_sampling], col = "pink", main = "Varaince Stabilization Normalization")
+
+# Variance Stabilization
+par(mfrow = c(1,2))
+summary_vst = analysisVariance(data_object = RNAseqCounts_vst, plot_title = "VST Normalization", data_return = "summary")
+summary_vst = summary_vst[order(summary_vst$variance, decreasing = TRUE),]
+head(summary_vst, n = 10)
+
+# clear system memory
+par(old_par)
+rm(sample_sampling)
+```
+
+## QC2 Discussion
+
+DESeq2 package provides the vst() function ("variance stabilization transformation").  As expected this normalization method improves read count distribution across all samples and variance across the range of mean read counts by species.  The MSD plot for the TPM normalization reveals two, potentially three, distinct groups defined by the mean and each stabilized at a different variance.  The VST normalization displays a minimal oscillating variance average across the range of mean read counts. Although neither is the ideal trend line, the VST normalization range of average variance is less than that of the TPM.  Also, the lack of a clear pattern across the range of means suggests a more successful normalization rather than still containing an artifact of the inherent bias in species with higher or lower expression.  Variance is not truly stabilized but the species with higher or lower variance can not be clearly defined, especially by their mean expression.  It is with this rationale that the VST normalization will move forward in the analytic pipeline. 
+
+# Sample QC with Principal Component Analysis
+
+High-dimensional data can still retain global anamolies and local outliers despite analyzing sample distributions and varaince stability.  Because of its high-dimensions, dimesnioonality reduction techniques can reduce the data structure into a more manageable set of dimensions to visually inspect the data for quick identification of anomalies.  Many techniqes exist to accomplish this (PCA, MDS, UMAP, tSNE, etc) but PCA has many advantageous characteristics for RNAseq analysis - i.e. its a linear technique that builds dimensions in decreasing order or variance and provides a quantified metric for analyzing species contribution to each variance-based dimension.  Everything one arguably needs for RNAseq analysis is investigated with this method.  One can reasonably determine what dimensions are biologically relevant, what features (samples) are anomalies, apply local outlier detection algorithms to experimental groupings, places relevant biology into dimensions that clustering algorithms can be applied to, and interrupt important species for hypothesis generation.  
+
+## QC3 Code Chunk
+
+``` {r QC3, eval=TRUE, echo=TRUE, message=TRUE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+# load packages and tools
+source("Rtools/load_exploratoryAnalysis.R")
+
+# apply PCA of rdata QC 
+analysisPCA(data_object = RNAseqCounts_vst, feature_labels = c(sample_metaData$infection_ancestry), plot_data = TRUE, data_return = FALSE, load_threshold = 0.05)
+remove_samples = c(291,484,78,91,161,164,192,290,292,300,338,369,417,460,478,489,490,491,492,493,494)
+pca_vst = analysisPCA(data_object = RNAseqCounts_vst[,-remove_samples], feature_labels = c(sample_metaData$infection_ancestry[-remove_samples]), plot_data = FALSE, data_return = TRUE, load_threshold = 0.05)
+
+# Check how effective anomaly detect was for sample QC
+plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry[-remove_samples]), axes = c(1,2), axes_labels = c("PC1", "PC2"))
+plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry[-remove_samples]), axes = c(1,3), axes_labels = c("PC1", "PC3"))
+plotPCA(pca_object = pca_vst, feature_labels = c(sample_metaData$infection_ancestry[-remove_samples]), axes = c(2,3), axes_labels = c("PC2", "PC3"))
+
+# filter out samples from count and meta data structures
+RNAseqCounts_QC = as.data.frame(RNAseqCounts_vst[,-remove_samples])
+sample_metaDataQC = as.data.frame(sample_metaData[-remove_samples,])
+
+```
+
+
+## QC3 Discussion
+
+This comprehensive tool first determines how many PCs are required to captured a user defined amount of the total variance in the data.  Global and local outliers are analyzed using the reconstruction error between the original data and reduced data, LOF is applied to present probability of each sample is a local outlier, and mahalanobis distance (MD) is analyzed by treatment group for each feature.  MD is useful when centroid-based approaches to clustering are appropriate for treatment groups.  In this case, it is not the best metric to analyze features as local outliers.  19 samples were identified to be likely local outliers and 2 samples were found to be potential global anomalies. This is a very conservative approach to sample QC as some of these samples do not reach the critical significance within their respective distributions. At this point the the data has be filtered of all concerning samples and reduced for downstream analysis.  
+
+# Data Output
+
+## DO Code Chunk
+
+``` {r DO, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# write files to csv format
+write.csv(RNAseqCounts_QC, "RNAseqCounts_QC.csv", row.names = TRUE)
+write.csv(sample_metaDataQC, "sample_metaDataQC.csv", row.names = TRUE)
+write.csv(gene_metaData, "gene_metaData.csv", row.names = TRUE)
+
+```
+
+
+## DO Discussion
+
+Quality control methods has been applied to the data, and the counts data as well as the meta data associated with the features and species have been written for further analysis in other workflow examples.
+

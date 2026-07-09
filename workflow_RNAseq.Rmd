@@ -22,7 +22,7 @@ editor_options:
 
 # NCBI GEO Data
 
-## GEO Data Code Chunl
+## GEO Data Code Chunk
 
 ```{r data, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", results='show', cache=FALSE}
 
