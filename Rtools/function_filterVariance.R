@@ -13,14 +13,14 @@ filterVariance = function (variance_table, var_cutoff = NULL, top_cutoff = FALSE
     indexes = c()
     for (i in 1:dim(variance_table)[1]) {
       if (variance_table[i,"variance"] >= var_cutoff) {
-        indexes = c(indexes, variance_table[i,"species_index"])
+        indexes = c(indexes, variance_table[i,"index"])
       }
     }
     print("species count:")
     print(length(indexes))
   } else {
     variance_table = variance_table[1:top_number,]
-    indexes = c(t(variance_table[,"species_index"]))
+    indexes = c(t(variance_table[,"index"]))
     print("species count:")
     print(top_number)
   }

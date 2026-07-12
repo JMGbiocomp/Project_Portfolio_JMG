@@ -9,6 +9,8 @@ Thumbs.db
 .Rproj.user
 workflow_RNAseq.RDataTmp
 workflow_RNAseq.RData
+workflow_RNAseqExploratoryAnalysis.RDataTmp
+workflow_RNAseqExploratoryAnalysis.RData
 .Rhistory
 .RDataTemp
 RNAseqCounts_QC.csv

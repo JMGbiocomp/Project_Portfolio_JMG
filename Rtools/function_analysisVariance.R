@@ -11,7 +11,7 @@
 # dependencies:
   # stats, ggplot2
 
-analysisVariance = function (data_object, plot_title, data_return = "none", histogram = TRUE, scatter = TRUE, meanSD = TRUE) {
+analysisVariance = function (data_object, plot_title, data_return = FALSE, histogram = TRUE, scatter = TRUE, meanSD = TRUE) {
   
   variance_data = data.frame(matrix(0, nrow = dim(data_object)[1], ncol = 4))
   colnames(variance_data) = c("index","mean","std","variance")
@@ -34,7 +34,7 @@ analysisVariance = function (data_object, plot_title, data_return = "none", hist
   if (meanSD) {
     print(mds_plot)
   }
-   if (data_return == "summary") {
+   if (data_return) {
     return(variance_data)
    }
 }

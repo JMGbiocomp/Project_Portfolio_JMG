@@ -49,6 +49,7 @@ source("Rtools/function_analysisLOF.R")
 source("Rtools/function_analysisMahalanobis.R")
 source("Rtools/function_analysisRE.R")
 source("Rtools/function_analysisPCA.R")
+source("Rtools/function_analysisPCA2.R")
 source("Rtools/function_filterPC.R")
 source("Rtools/function_filterPCL.R")
 

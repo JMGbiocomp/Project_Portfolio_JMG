@@ -22,8 +22,10 @@ optimizePCA = function (data_object, feature_labels, usage = "features", return_
   }
   pca_object = prcomp(x = hold_data, center = center_data, scale. = scale_data) # PCA object
   target_PCs = filterPC(pca_object = pca_object, variance_percent = total_variance) # find total PC needed to include the user defined total variance of the original data
-  stats::screeplot(pca_object, type = "lines", npcs = target_PCs, main = "Contribution to Variance by Principal Components", pch = 16) # screeplot to visualize the variance distribution of included PCs
-  title(xlab = "Principal Components")
+  if (usage == "features") {
+    stats::screeplot(pca_object, type = "lines", npcs = target_PCs, main = "Contribution to Variance by Principal Components", pch = 16) # screeplot to visualize the variance distribution of included PCs
+    title(xlab = "Principal Components")
+  }
   # flow control for visualizing the top 3 PCs 2D plots
   if (plot_data) {
     plot_data = as.data.frame(pca_object$x[,1:3])

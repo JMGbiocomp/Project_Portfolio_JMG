@@ -1,0 +1,303 @@
+---
+title: "workflow_RNAseqExploratoryAnalysis"
+author: "Joshua Glowalla"
+date: "2026-07-09"
+output:
+  html_document:
+      toc: TRUE #toc = table of contents
+      toc_float: TRUE
+      toc_depth: 4
+      fig_caption: yes
+      code_folding: hide
+      number_sections: TRUE
+vignette: >
+    %\VignetteIndexEntry{Text}
+    %\usepackage[utf8]{inputenc}
+    %\VignetteEngine{knitr::rmarkdown}
+fontsize: 13pt
+editor_options:
+  chunk_output_type: inline
+---
+
+# Data Download and Tools Upload
+
+## Set Up Code Chunk
+``` {r set_up, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", results='show', cache=FALSE}
+# Tools and Packages
+source("Rtools/load_baseline.R")
+source("Rtools/load_dataProcessing.R")
+source("Rtools/load_exploratoryAnalysis.R")
+
+# Preprocessed data sets
+gene_metadata = read.csv('gene_metaData.csv', row.names = 1) # gene annotation data
+sample_metadata = read.csv('sample_metaDataQC.csv', row.names = 1) # sample annotation data
+RNAseqCounts_QC = read.csv('RNAseqCounts_QC.csv', row.names = 1) # quality control filtered, normalized and varianced stablized count data
+
+# define a baseline graphjic parameters for resetting
+old_par = par(no.readonly = TRUE)
+
+```
+
+## Set Up Discussion
+
+Previous workflow example (see 'workflow_RNAseqQC') has processed, filtered, and normalized RNAseq count data from a publicly available data set on NCBI GEO (accession number GSE81046).  Samples underwent quality control assessment and a stringent criteria was applied to filter out anomalies.  Genes with low counts were removed and the count data was normalized by stabilizing the variance across gene species and accounting for sequencing depth by sample.
+
+Custom tools uploaded for exploratory analysis will demonstrate approaches to identifying candidate genes for downstream analysis and physical experiments (hypothesis generation) via dimensionality reduction techniques and cluster analysis. The custom tools will leverage common packages to these ends to generate visualization of reduced dimensional versions of the data and clustering by several different algorithms as well as streamline the extraction of identified gene species candidates from the results. These exploratory analysis methods are also well suited for sample quality control and batch effect assessment, so brief demonstrations of their applications to this end will also be showcased.     
+
+# Variance Filtering 
+
+Variance is a key summary statistic for investigations of biological questions especially when working with high-throughput data.  If simplified it is inherent in the experimental design that species under investigation will display increasing variance in those that respond to experimental treatment while those that do not will remain consistent across sample - i.e. the variance is extremely low.  In actual experimentation this is not as simple.  Sample variability can be naturally high depending on the biology in question as well as technical artifacts like batch effects.  Biological molecule levels for species can be highly dynamic under stable conditions and therefore potentially difficult to decipher separation from treatment response.  What change biologically relevant differs from each species of biological molecule, which is perhaps the greatest hurdle when working with high-throughput data.  Variance is often used to filter out unimportant species fro downstream analysis such that only the top # of species by variance are kept.  In practice this is very useful for finding meaningful species for the biology under investigation, but it does potentially exclude biologically relevant candidates that are out shined by high variance species.  It is important to remember that high variance does not mean the variance mirrors the experimental treatments, so some of these candidates will have no correlation to the biology investigated.  Therefore, it may be valuable to perform downstream analysis of non-variance filtered data sets along side post-variance filtered depending on the needs of the investigation. 
+
+## Variance Filtering Code Chunk
+
+```{r VF, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+varTable = analysisVariance(data_object = RNAseqCounts_QC, plot_title = "RNAseqCounts_QC", data_return = TRUE) # produce a summary statistic table for the count data
+filterVariance(variance_table = varTable, var_cutoff = 0, top_cutoff = FALSE, index_return = FALSE) # no variance filter applied to access variance distribution rather than target a specific number of species
+filterVariance(variance_table = varTable, var_cutoff = 2.5, top_cutoff = FALSE, index_return = FALSE) # variance cut off at 2.5 based on histogram and scatter plot
+filterVariance(variance_table = varTable, var_cutoff = 2.3, top_cutoff = FALSE, index_return = FALSE) # variance cut off at 2.3 based on histogram and scatter plot
+varIndex = filterVariance(variance_table = varTable, var_cutoff = 2, top_cutoff = FALSE, top_number = 1000, index_return = TRUE) # extract indexes of top 937 variance species with final variance cutoff set to 2.0
+
+RNAseqCounts_QC_varFiltered = as.data.frame(RNAseqCounts_QC[varIndex,]) # variance filtered count data
+
+```
+
+## Variance Filtering Discussion
+
+
+
+# Dimensionality Reduction Techniques
+
+Dimensionality reduction (DR) methods are powerful tools to reduce data with high dimensions to a smaller number of dimensions, possibly just two, while preserving the global and local relationships between data points in the original data.  Within this reduced dimensional space much of the noise can be removed, global anomalies and local outliers can be identified and features of interest are capable of being analyzed visually, which is at the very least extremely difficult if not impossible within the space of the original data.  The former is crucial for finalizing data QC as seen in the previous 'workflow_RNAseqQC' while the latter is a powerful tool to both support the biological question being asked and facilitate the generation of targeted, testable hypotheses. To successfully reach these goals, it is often required to perform an analysis of the DR and/or undergo hyper parameter tuning to optimize the DR.  The most common DR methods are PCA (Principal Component Analysis), t-SNE (t-Distributed Stochastic Neighbor Embedding), UMAP (Uniform Manifold Approximation and Projection), and MDS (Multidimensional Scaling).  PCA is a linear approach that identifies dimensions in order of greatest variance (Principal Components) - i.e. each subsequent dimension (axes) houses less variance between the data points than the last. Both t-SNE and UMAP are nonlinear DR methods that allow the user to define the number of dimensions the data will be reduced to and excel at capturing local and global structures within the data.  t-SNE is known better for capturing local structure and therefore excellent for scRNAseq data analysis while UMAP can be preferred over t-SNE since it is computationally less demanding (faster) and considered to better balanced for capture of global and local structure. Within this context, PCA would be considered a strong DR technique to evaluate global structure.  MDS focuses on preserving pairwise distances between data points - i.e. it maps the data into reduced dimensions in which the more similar data is the closer they are to each other within this space.  This is uniquely different from t-SNE and UMAP, which the distances of data within these reduced dimensional space is not as strongly connected to similarity and "tunable".  This difference makes MDS a strong DR method for pre-processing prior to K-means or DBSCAN clustering algorithms as well as outlier detection. Following DR, the data in the reduced dimensional space can be put through unsupervised learning approaches - i.e. clustering - in order to finish the data quality control process and investigate the biology of interest as stated above. 
+
+## Principal Component Analysis (PCA)
+
+The first application of PCA is to depend heavily on the linear reduction of the data into axes of decreasing capture of variance.  PC scores and loading axes correspond to one another in order, so how samples separate from each other in each dimension can be analyzed for what species most contributes to this variance, and vice versa.  As such, PCA can be a stand alone tool for finding potential candidates that lead into hypothesis generation.  It also is a common stepping stone for reducing the dimensions of the data before running other dimensionality reduction techniques.  Either way the data reduced by PCA (PC scores) is poised well for cluster analysis methods for investigating a biological feature of the data.    
+
+### PCA1 Code Chunk
+
+```{r PCA1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=6, fig.width=8, results='show', cache=FALSE}
+
+analysisPCA2(data_object = RNAseqCounts_QC, feature_labels = c(sample_metadata$infection_ancestry), plot_data = TRUE, qc_data = FALSE, data_return = FALSE, load_threshold = 0.05)
+TargetSpecies_pca = analysisPCA2(data_object = RNAseqCounts_QC, feature_labels = c(sample_metadata$infection), plot_data = TRUE, qc_data = FALSE, data_return = TRUE, load_threshold = 0.05)
+
+analysisPCA2(data_object = RNAseqCounts_QC_varFiltered, feature_labels = c(sample_metadata$infection_ancestry), plot_data = TRUE, qc_data = FALSE, data_return = FALSE, load_threshold = 0.08)
+TargetSpecies_pca_varFiltered = analysisPCA2(data_object = RNAseqCounts_QC_varFiltered, feature_labels = c(sample_metadata$infection_ancestry), plot_data = TRUE, qc_data = FALSE, data_return = FALSE, load_threshold = 0.08)
+
+```
+
+### PCA1 Discussion
+
+The 'analysisPCA2' tool was previous used for performing sample QC for the data set in the 'workflow_RNAseqQC' example to generate the RNAseqCounts_QC data set by filtering out all sample anomalies, global and locally by treatment group.  Reapplying this tool is useful in that it can now access the PCA loadings of species corresponding to the top 3 PCA score axes, those with the largest contribution to the variance within the data set.  Each two dimensional comparison helps identify species that have a loading score at or above the set threshold (0.05) for both axes.  THis threshold is not a fixed value and does not have any meaning outside of any data set.  The optimal threshold to capture the key species contributing to the variance within the data requires fine tuning and assessment of the distribution of loading across the species.  The more well distributed the loading is, as is with most cases, the more nuanced the difference between top contributors and those not worth investigating. 
+
+### PCA2 Code Chunk
+
+```{r PCA2, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+par(old_par)
+
+ReducedData_PCAbySamples = optimizePCA(data_object = RNAseqCounts_QC, feature_labels = c(sample_metadata$infection_ancestry), usage = "features", total_variance = 0.8) # to cluster that matches treatment conditions
+plotPCA(pca_object = ReducedData_PCAbySamples, feature_labels = c(sample_metadata$infection_ancestry), axes = c(1,4), axes_labels = c("PC1", "PC4")) # check the 4th axis from the PCA scores 
+ReducedData_PCAbySamples = optimizePCA(data_object = RNAseqCounts_QC_varFiltered, feature_labels = c(sample_metadata$infection_ancestry), usage = "features", total_variance = 0.8) # repeat for variance filtered data
+
+par(old_par)
+
+ReducedData_PCAbyGenes = optimizePCA(data_object = RNAseqCounts_QC, feature_labels = c(rownames(RNAseqCounts_QC)), usage = "species", total_variance = 0.8) # to cluster that represents coexpression/coregulation
+ReducedData_PCAbyGenes_varFiltered = optimizePCA(data_object = RNAseqCounts_QC_varFiltered, feature_labels = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "species", total_variance = 0.95) # repeat for variance filtered data
+
+```
+
+### PCA2 Discussion
+
+In this example, the 'optimizePCA' tool is applied to determine what number of PC should be included for downstream analysis.  It was applied on the data set for analysis by samples (evaluation of the data representative of biological features) and by species (grouping species by co-expression/co-regulation patterns).  "by sample" is essentially what the 'analysisPCA2' tool does except it does not effective apply a clustering algorithm and relies heavily on visualization by the investigator.  Upon performing cluster analysis in this reduced space for the different biological features in question, the investigator would analyze the PC loadings if a feature was found to be meaningful.  When performing PCA 'by species', the clusters determined by cluster analysis would define the co-expression/co-regulation groups for downstream analysis. 
+
+An important notes is how the structure of the data has changed ion regard to variance after variance filtering.  Unfiltered data has the best biologically relevant separation from using PC1 and PC3 as dimensions.  After filtering my variance, a very similar separation is captured by PC1 and PC2.  Not filtering the data by variance appears to place more wait on a particular data structure feature that holds a significant amount of variance (PC2).  Based the removal or shifted weight in the total variance of the data after filtering, it should be assumed that this axis in the unfiltered data is heavily skewed by a large amount of variance distributed over many species that is able to outweigh the biological influence of the experimental design.  Variance filtering in this example has therefore places great weight on the biology, placing the relevant axes in the top 2 positions, and logically leading the investigation to believe that it has successfully removed a great deal of noise from the data.  This benefit is well-established and of course begs the question, was anything important unintentionally removed? 
+
+## t-distribution Stochastic Neighbor Embedding (tSNE) and Uniform Manifold Approximation Projection (UMAP)
+
+tSNE is commonly performed after PCA, which helps reduce the data into a lower dimensional state and saves a significant amount of time for embedding.  PCA is commonly coded within the tSNE algorithm itself as is with the Rtsne() function in the Rtsne package.  The difference between performing tSNE with or without prior PCA reduction will not be demonstrated or investigated here in this example. Unlike PCA, tSNE does not have corresponding dimensional data if running 'by sample' for genes.  Therefore when investigating the species for exploratory analysis and not performing sample QC, tSNE should only be performed 'by genes' to group genes together and identify them via cluster analysis.
+
+tSNE is considered a staple for scRNAseq data because it is very successful at capturing local relationship between neighbors.  This is extremely useful as a tissue has many different cell types and even those cell types are known to have a spectrum of heterogeneity within them.  UMAP is considered more successful at better balancing local and global structures of the data.  It is also much faster and less computationally expensive, making it a preference when possible for investigators.  
+
+Regardless of what algorithm is used to reduce the dimensions of the data, each requires tuning of hyper parameters to best optimize the capture of said structure.  Whether investigating 'by sample' or 'by species', each requires tuning of these parameters to represent the data visually in a manner that best represents the structure in question.  To over simplify everything, 'by sample' is better optimized for global structure and 'by gene' analyze is better optimized for local structure.  Actual application on data sets proves the matter is less simple than it may sound.  All things considered, tSNE and UMAP are not common techniques applied to bulk RNAseq count data and are primarily used in scRNAseq analysis pipelines. However, they are still effective for 'by sample' data QC and capable for 'by gene' analysis approaches.  
+
+### TSNE_UMAP Code Chunk
+
+```{r TSNE_UMAPa, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=13, fig.width=10, results='show', cache=FALSE}
+
+# example of non-linear DR applied for sample QC
+set.seed(99)
+optimizeTSNE(data_object = t(RNAseqCounts_QC), feature_labels = c(sample_metadata$infection), usage = "perplexity")
+set.seed(99)
+optimizeTSNE(data_object = t(RNAseqCounts_QC), feature_labels = c(sample_metadata$infection), usage = "iterations", neighbors = 50)
+
+# example of non-linear DR applied for investigating species co-expression/co-regulation
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes$x[,1:3], feature_variable = c(rownames(RNAseqCounts_QC)), usage = "neighbors")
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes$x[,1:3], feature_variable = c(rownames(RNAseqCounts_QC)), usage = "distance", neighbors = c(20))
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes$x[,1:3], feature_variable = c(rownames(RNAseqCounts_QC)), usage = "iterations", neighbors = c(20), min_distance = 0.05)
+
+# for variance filtered data
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes_varFiltered$x[,1:10], feature_variable = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "neighbors")
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes_varFiltered$x[,1:10], feature_variable = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "distance", neighbors = c(15))
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes_varFiltered$x[,1:10], feature_variable = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "iterations", neighbors = c(20), min_distance = 0.01)
+
+```
+
+```{r TSNE_UMAPb, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+# finalize DR for data by sample
+set.seed(99)
+optimizeTSNE(data_object = t(RNAseqCounts_QC), feature_labels = c(sample_metadata$infection), usage = "check", neighbors = 50, iterations = 6*50)
+set.seed(99)
+ReducedData_TSNEbySamples = Rtsne(t(RNAseqCounts_QC), dims = 2, perplexity = 75, max_iter = 6*50, pca = TRUE, theta = 0.25, check_duplicates = FALSE)
+
+# finalize DR for data by genes
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes$x[,1:3], feature_variable = c(rownames(RNAseqCounts_QC)), usage = "check", neighbors = c(20), min_distance = 0.05, iterations = 300, display_legend = FALSE)
+set.seed(99)
+ReducedData_UMAPbyGenes = umap(ReducedData_PCAbyGenes$x[,1:3], method = "naive", n_neighbors = 20, n_components = 2, min_dist = 0.05, n_epoch = 300, metric = "euclidean")
+
+# for variance filtere4d data
+set.seed(99)
+optimizeUMAP(data_object = ReducedData_PCAbyGenes_varFiltered$x[,1:10], feature_variable = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "check", neighbors = c(15), min_distance = 0.01, iterations = 300, display_legend = FALSE)
+set.seed(99)
+ReducedData_UMAPbyGenes_varFiltered = umap(ReducedData_PCAbyGenes_varFiltered$x[,1:10], method = "naive", n_neighbors = 15, n_components = 2, min_dist = 0.01, n_epoch = 300, metric = "euclidean")
+
+# remove seed from environment
+set.seed(NULL)
+
+```
+
+### TSNE_UMAP Discussion
+
+Regardless of the application, 'by samples' or 'by genes', hyper parameter tuning is performed sequentially to stabilize the embedding in tSNE and projection in UMAP.  The application of tSNE clearly demonstrates it effectively reduces the count data into two dimensions that visually captures the biological feature under investigation.  Applying UMAP to the PC scores 'by genes' yields expected but interesting results.  Because the input data has multiple axes in which variance in the data is captured, reducing these axes to two dimensions causes opposite ends of the gradient within the data to curve.  Essentially, this becomes represented in two dimensions as them sharing similar coordinate values in one dimension and polar opposites in the other dimension.  This "C" shape represents the gradual shift from the most up-regulated genes to the most down-regulated genes within the data.  We can see this gradual change from species to species in the PC score plots from performing PCA 'by genes' above.  Despite this visualization not being clear as to how these genes can be clustered, performing a clustering method on these dimensions aimed at about 4-5 clusters should decently group them.  Because PCA dominates the exploratory analysis realm of bulk RNAseq analysis, this approach is not common but can yield meaningful results.   
+
+## Multi-dimensional Scaling (MDS)
+
+### PCA Code Chunk
+
+```{r PCA, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+mdsOptimize(data_object = t(ReducedData_PCAbySamples$x[,1:6]), feature_labels = c(sample_metadata$infection_ancestry))
+mds_samples = mdsOptimize(data_object = t(pca_vst$x[,1:6]), feature_labels = c(sample_metadata$infection_ancestry), data_return = "classic")
+
+```
+
+### PCA Discussion
+
+# Cluster Analysis Methods
+
+The importance of clustering in unsupervised learning is simple, an algorithm is applied to group the data by their structural similarities absent of any predefined labels.  By the relationships between each data point and its neighbors, the algorithm captures structure within the data that may or may not corroborate the biological feature/s of interest.  When cluster results identically or closely match groupings by feature, confidence is instilled that the hypothesized relationship has validity. It also can provide insight into how data similarly contributes to the data structure when no such defining feature exists for them, either achieved by looking at individual species rather than features or when the current feature/s of interest show very weak correlation with the clustering results.  At this point it should be clear that clustering is a powerful driver for hypothesis validation and generation.
+
+## Hierarchical Clustering (HC)
+
+Hierarchical clustering requires the conversion of the data into a distance/distance-like matrix (correlation) and choosing a linkage method algorithm to group neighbors by their "distance" values in relation to one another.  The base function for performing these hierarchical groupings does so from the "bottom-up" - i.e. every data point (sample or species) exists in its own cluster and incrementally joins with other clusters until every single cluster is incorporated into one final large cluster.  This results in a dendrogram (tree) structure.  Another way to approach hierarchical cluster is to perform the process in reverse ('top-down') but this alternative will not be demonstrated here.  However, deciding which distance calculation and linkage method to perform hierarchical clustering is universal to either approach and will be demonstrated here with custom tools.  Correlation methods for distance are suitable for co-expression/regulation approaches while actual distance between one another in a defined space is well suited for exploring treatment responses.  Linkage determines the exact calculation as to what is determines close vs far as it sequentially moves from one pole of the tree to the next.  Hierarchical clustering when tuned properly is a powerful algorithm for both sample QC, investigating/validating a biological hypothesis, and grouping species of interests.  Results are commonly outputted in the dendrogram itself or a heatmap for quickly visualizing the relationships.
+
+Hierarchical clustering in R is notably computationally expensive with increasing data size compared to other method.  Unlike other methods which inherently analyze in a more limited dimensional space, hierarchical clustering is best used after dimensionality reduction or preliminary noise filtering.  Without DR, it may detect samples unjustly as anomalies or incorporate too much irrelevant noise into the construction.  
+
+### HC Code Chunk
+
+```{r HCa, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+cophTable_TSNEbySamples = analysisCophenetic(data_object = ReducedData_TSNEbySamples$Y, feature_labels = c(sample_metadata$infection_ancestry), usage = "reduced") # cophenetic correlation coefficient
+cophTable_TSNEbySamples
+analysisHCLUSTCorrelation(data_object = ReducedData_TSNEbySamples$Y, feature_labels = c(sample_metadata$infection_ancestry), usage = "reduced", dist_calculation = c("euclidean", "manhattan"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid")) # correlation coefficients for dendrograms
+
+cophTable_UMAPbyGenes = analysisCophenetic(data_object = ReducedData_UMAPbyGenes$layout, feature_labels = c(rownames(RNAseqCounts_QC)), usage = "reduced") # cophenetic correlation coefficient
+cophTable_UMAPbyGenes
+analysisHCLUSTCorrelation(data_object = ReducedData_UMAPbyGenes$layout, feature_labels = c(rownames(RNAseqCounts_QC)), usage = "reduced", dist_calculation = c("euclidean", "manhattan"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid")) # correlation coefficients for dendrograms
+
+cophTable_UMAPbyGenes_varFiltered = analysisCophenetic(data_object = ReducedData_UMAPbyGenes_varFiltered$layout, feature_labels = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "reduced") # cophenetic correlation coefficient
+cophTable_UMAPbyGenes_varFiltered
+analysisHCLUSTCorrelation(data_object = ReducedData_UMAPbyGenes_varFiltered$layout, feature_labels = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "reduced", dist_calculation = c("euclidean", "manhattan"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid")) # correlation coefficients for dendrograms
+analysisHCLUSTCorrelation(data_object = ReducedData_UMAPbyGenes_varFiltered$layout, feature_labels = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "reduced", dist_calculation = c("spearman", "pearson"), linkage_methods = c("ward.D2","single","complete","average","mcquitty","centroid"))
+
+```
+
+```{r HCb, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+dend_TSNEbySamples = objectHCLUST(data_object = ReducedData_TSNEbySamples$Y, feature_labels = c(sample_metadata$infection_ancestry), usage = "reduced", return_object = "dend", dend_plot = TRUE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+optimizeTree(hc_object = dend_TSNEbySamples, leaf_count = 10, feature_labels = c(sample_metadata$infection_ancestry)) # evaluate cutting of the structure into a set nu8mber of groups and see how well it clusters the data by feature
+plot(color_branches(dend_TSNEbySamples, k = 3))
+plot(color_branches(dend_TSNEbySamples, k = 6))
+
+
+dend_UMAPbyGenes = objectHCLUST(data_object = ReducedData_UMAPbyGenes$layout, feature_labels = c(rownames(RNAseqCounts_QC)), usage = "reduced", return_object = "dend", dend_plot = TRUE) # view dendrogram 
+plot(color_branches(dend_UMAPbyGenes, k = 5))
+plot(color_branches(dend_UMAPbyGenes, k = 8))
+
+
+dend_UMAPbyGenes_varFiltered = objectHCLUST(data_object = ReducedData_UMAPbyGenes_varFiltered$layout, feature_labels = c(rownames(RNAseqCounts_QC_varFiltered)), usage = "reduced", return_object = "dend", dend_plot = TRUE) # view dendrogram of optimal distance calculation and linkage method and create dendrogram object
+plot(color_branches(dend_UMAPbyGenes_varFiltered, k = 4))
+plot(color_branches(dend_UMAPbyGenes_varFiltered, k = 9))
+
+```
+
+### HC Discussion
+
+A value metric for evaluating hierarchical clustering is the "cophenetic distance correlation".  It is a single measure as to how well the dendrogram structure reflects the original input distance matrix. Ideally, the linkage method chosen construct the hierarchy well and capture these relationships.  Because fo the relationship this metric has with the selection of the distance matrix calculation and linkage method, it alone will mask differences between selections as long as they share similar correlation coefficients.  This is a common problem but not unmanageable.  One could just perform a complete combinatorial process and analyze every single combination.  Effectively, one must actually take a look at the dendrogram structures themselves, but this process can be significantly truncated by evaluating the correlation between different dendrograms themselves.  This is that the two step process does above with the 'analysisCophenetic' and 'analysisHCLUSTCorrelation' tools.  Firstly, all cophenetic distance correlation coefficients are found for all user defined combinations of distance calculation and linkage methods.  The user selects a subset of these (which ones share similar and high coefficient values fitting the question at hand?) and analyzes them for how correlated they are to each other.  High correlation means similar structures, and one only needs one of the same structure. Any very different structures would then be analyzed visually and the computational burden of this process kept to a minimum.  
+
+How the dendrogram structure is handled for clustering the data depends heavily on what "height" the tree is cut.  When analyzing by samples, the low number of factors for a biological feature of study relative to the number of species present in the data allows for applying the 'opimizeTree' function.  This function yeilds an easily readable table in which one can compare cluster assignments against sample feature labels.  THis step an be overlooked if needed and is recommended if analyzing the clustering by genes.  Visual inspection of different cluster counts is helpful.  Later, one can retrieve the cluster assignments of the determined "k" value with the 'cutree' function  from the "stats" or 'dendextend' packages.  
+
+## K-means Clustering (Kmean)
+
+K-means analysis is a centroid-based clustering algorithm.  Essentially, a # of centers defined the by user are found within the data in a two dimensional space and the data points are assigned to the cluster with the closest distance to its centroid.  The algorithm attempts to maximize the number of closest neighbors within the same cluster and minimize distance to the centroid of the assigned cluster.  This clustering method is very easily applied and relatively low computation burden but is not well suited for data that displays irregular or not centroid-like structure within the dimensional space.  Despite this short coming it still can be applied to non-optimal data structures and yield meaningful results.  
+
+Tuning K-means clustering requires analyzing variance (Sum of Squares) for within and between clusters using elbow plots.  Optimal number of clusters is where the SSbetween is maximized with minimal changes from increased cluster count and the SSwithin is evenly distributed between the clusters.  Dissproportional SSwithin for a single cluster suggests that cluster is better split into smaller clusters.  Visualizing the data aids in this interpretation.  
+
+### Kmean Code Chunk
+
+```{r Kmean, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+optimizeKmeans(data_object = ReducedData_TSNEbySamples$Y)
+optimizeKmeans(data_object = ReducedData_UMAPbyGenes$layout)
+optimizeKmeans(data_object = ReducedData_UMAPbyGenes_varFiltered$layout)
+
+```
+
+### Kmean Discussion
+
+The optimal number of clusters for the data analyzed by samples is 3, which has been consistently support by visualization from dimensionality reduction techniques. The optimal number of cluster for the data analyzed by genes is 5. The optimal number of cluster for the variance filtered data analyzed by genes is 4. Looking back at the results of hierarchical clustering, the optimal number of clusters determined by K-means cluster is supported. What it doesn't do is suggest the idea that there isn't anything meaningful behind the smaller clusters identified by either method.  Especially when investigating by species, these identifiable smaller groups with low SSwithin and visually apparent in hierarchical clustering may be an important group of species with similar and biologically relevant behavior. It may be best to think of this optimization as evenly dispersing the weight of the experiment design across all the data.  Higher cluster count results in clusters with reduced SSwithin and closer distance (either by K-means or hierarchical clustering), but these goals in of themselves are not synonymous to optimal clustering of the data.  Essentially, the goal is to find a cluster count that makes reduced in the difference between the data from increases in count marginal.    
+
+## Density-based Spatial Clustering of Applications with Noise (DBSCAN)
+
+### DBSCAN Code Chunk
+
+```{r DBSCAN, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source= "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+
+
+
+```
+
+### DBSCAN Discussion
+
+## Applying Heatmaps for Visual Analysis
+
+### Heatmap Code Chunk
+
+
+
+### Heatmap Discussion
+
+## Applying Cluster Assignments to Two-Dimensional Visualizations
+
+### Cluster_Assignments Code Chunk
+
+### Cluster_Assignments Discussion
+
+
+# Annotation Data: Gathering Meaning from Exploratory Analysis
+
+# Downstream Analysis
+
+
+
+
+
+

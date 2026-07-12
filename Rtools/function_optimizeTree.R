@@ -7,6 +7,7 @@
   # feature_labels = vector of feature data to which the clustering will be analyzed against 
 
 optimizeTree = function (hc_object, leaf_count, feature_labels) {
+  feature_labels = factor(feature_labels)
   # flow control to analyze the cutree for each number of defined leaves (clusters)
   for (i in 2:leaf_count) {
     cut = cutree(hc_object, k = i) # cutree 
